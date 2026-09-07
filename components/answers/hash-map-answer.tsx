@@ -5,14 +5,14 @@ import { Callout, CodeBlock, Figure } from '@/components/answer-primitives';
 import type { ReadingPage } from '@/lib/reading';
 
 function HashPipeline() {
-  return <Figure caption="This is a teaching example: UserId(42) is the key, 42 is the user's ID, hashCode() is assumed to return 42, and the table has 16 buckets.">
+  return <Figure caption="Simplified example: the hashes and 16-bucket table are chosen for teaching; runtime values can differ.">
     <svg viewBox="0 0 820 260" aria-labelledby="hash-title hash-desc" className="h-auto w-full">
       <title id="hash-title">HashMap bucket selection example</title><desc id="hash-desc">The example key UserId 42 produces hash code 42, remains 42 after hash spreading, and reaches bucket 10 in a table with capacity 16.</desc>
       <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#94a3b8" /></marker></defs>
       {[
         { x: 20, w: 140, eyebrow: 'KEY · ID IS 42', main: 'UserId(42)', color: '#f8fafc' },
         { x: 220, w: 150, eyebrow: 'hashCode() RETURNS', main: 'hash = 42', color: '#ecfeff' },
-        { x: 430, w: 160, eyebrow: 'MIX HIGH BITS DOWN', main: '42 ^ 0 = 42', color: '#ecfeff' },
+        { x: 430, w: 160, eyebrow: 'SPREAD THE HASH', main: '42 ^ 0 = 42', color: '#ecfeff' },
         { x: 650, w: 150, eyebrow: 'SELECT BUCKET', main: '15 & 42 = 10', color: '#cffafe' },
       ].map((box, i) => <g key={box.x}><rect x={box.x} y="76" width={box.w} height="105" rx="16" fill={box.color} stroke={i === 3 ? '#06b6d4' : '#cbd5e1'} /><text x={box.x + 18} y="107" fontSize="11" fontWeight="800" letterSpacing="1.2" fill="#64748b">{box.eyebrow}</text><text x={box.x + 18} y="143" fontSize="16" fontWeight="800" fill="#0f172a">{box.main}</text>{i < 3 && <path d={`M${box.x + box.w + 12},128 H${box.x + box.w + 48}`} stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrow)" />}</g>)}
       <text x="20" y="220" fontSize="12" fill="#64748b">Result: HashMap searches bucket 10. Another key or table capacity can produce a different bucket.</text>
@@ -168,15 +168,15 @@ function OverviewPage() {
 
 function HashCalculationPage() {
   return <div className="article-copy">
-      <Callout tone="tip" title="Worked example: what does 42 mean?">
-        Suppose the key is <code>new UserId(42)</code>, where <code>42</code> is the user&apos;s ID. For this teaching example, assume <code>UserId.hashCode()</code> returns that ID, so the raw hash is <code>42</code>. Because <code>42 &gt;&gt;&gt; 16</code> is <code>0</code>, mixing the high bits does not change this small hash. With 16 buckets, HashMap calculates <code>(16 - 1) &amp; 42</code>, which equals <code>10</code>, so it searches bucket 10.
+      <Callout tone="tip" title="Follow one key: UserId(42)">
+        Here, <code>42</code> is the user&apos;s ID. For this simplified example, assume <code>hashCode()</code> returns <code>42</code>. HashMap spreads that hash and then uses it to select one bucket. The result is bucket <code>10</code>.
       </Callout>
       <HashPipeline />
-      <Callout title="Why mix the high bits into the low bits?">
-        A small table chooses its bucket mainly from the hash&apos;s lowest bits. If useful differences exist only in the upper bits, many keys could otherwise land in the same bucket. OpenJDK calculates <code>h ^ (h &gt;&gt;&gt; 16)</code>: shifting copies the upper 16 bits downward, and XOR mixes them with the lower 16 bits. This is a small distribution improvement, not encryption and not a second call to the key&apos;s <code>hashCode()</code> method.
+      <Callout title="What does “spread the hash” mean?">
+        HashMap mixes the hash&apos;s upper bits into its lower bits with <code>h ^ (h &gt;&gt;&gt; 16)</code>. This helps distribute keys because a small bucket array mainly uses the lower bits. For the small value <code>42</code>, the shifted part is <code>0</code>, so the spread hash remains <code>42</code>.
       </Callout>
-      <div className="formula text-left"><code>capacity = 16<br />mask = capacity - 1 = 15<br /><br />15&nbsp; = 00 1111<br />42&nbsp; = 10 1010<br />AND = 00 1010 = 10<br /><br />bucket index = 10</code></div>
-      <p><strong>If a normal class does not override <code>hashCode()</code>,</strong> it inherits an identity-based integer from <code>Object</code>; Java does not specify a public formula for that number. Records are different: the compiler provides equality and hashing derived from their components. Page 5 shows both cases in detail.</p>
+      <div className="formula text-left"><code>bucket count: 16<br />mask: 16 - 1 = 15 = 00 1111<br />spread hash: 42&nbsp;&nbsp;&nbsp; = 10 1010<br />bitwise AND:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 00 1010 = 10<br /><br />selected bucket: 10</code></div>
+      <p>A class that does not override <code>hashCode()</code> inherits an identity-based value from <code>Object</code>. Java does not define its exact formula. Page 5 explains this and record-generated hashes.</p>
     </div>;
 }
 
