@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, BookOpen, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuTrigger,
+  DropdownMenuGroup, DropdownMenuLabel, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { ReadingPage } from '@/lib/reading';
 
@@ -72,8 +72,10 @@ export function BookReader({ pages }: { pages: ReadingPage[] }) {
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="outline" className="chapter-trigger" />}><BookOpen /> Chapters <ChevronDown /></DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-[min(92vw,360px)] bg-[#fffdf7] p-2">
-          <DropdownMenuLabel className="px-3 py-2 text-slate-600">Jump to a page</DropdownMenuLabel>
-          {pages.map((page, index) => <DropdownMenuItem key={page.id} onClick={() => goTo(index + 1)} className="gap-3 px-3 py-2.5 text-slate-800"><span className="chapter-number">{index + 1}</span><span>{page.title}</span></DropdownMenuItem>)}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="px-3 py-2 text-slate-600">Jump to a page</DropdownMenuLabel>
+            {pages.map((page, index) => <DropdownMenuItem key={page.id} onClick={() => goTo(index + 1)} className="gap-3 px-3 py-2.5 text-slate-800"><span className="chapter-number">{index + 1}</span><span>{page.title}</span></DropdownMenuItem>)}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
       <span className="hidden text-sm font-medium text-slate-600 sm:block">Use ← and → to turn pages</span>
