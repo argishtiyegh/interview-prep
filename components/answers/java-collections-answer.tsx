@@ -261,48 +261,6 @@ const listFactoryCode = [
   '// immutable.set(0, "X"); // UnsupportedOperationException',
 ].join('\n');
 
-const priorityQueueCode = [
-  'PriorityQueue<Integer> jobs = new PriorityQueue<>();',
-  'jobs.offer(40);',
-  'jobs.offer(10);',
-  'jobs.offer(30);',
-  'jobs.offer(20);',
-  '',
-  'jobs.peek(); // 10',
-  'jobs.poll(); // removes 10',
-  '',
-  '// Iteration is NOT guaranteed to be: 20, 30, 40',
-  'while (!jobs.isEmpty()) {',
-  '    process(jobs.poll()); // removal order is sorted by priority',
-  '}',
-].join('\n');
-
-const blockingQueueCode = [
-  'BlockingQueue<Job> jobs = new ArrayBlockingQueue<>(100);',
-  '',
-  '// Producer waits when the bounded queue is full',
-  'jobs.put(job);',
-  '',
-  '// Consumer waits when the queue is empty',
-  'Job next = jobs.take();',
-  '',
-  '// Timed alternative',
-  'boolean accepted = jobs.offer(job, 500, TimeUnit.MILLISECONDS);',
-].join('\n');
-
-const copyOnWriteCode = [
-  'CopyOnWriteArrayList<Listener> listeners =',
-  '        new CopyOnWriteArrayList<>();',
-  '',
-  'for (Listener listener : listeners) {',
-  '    listener.onEvent(event);',
-  '    // This iterator sees the snapshot captured when it was created.',
-  '}',
-  '',
-  '// Every mutation copies the backing array.',
-  'listeners.add(newListener);',
-].join('\n');
-
 function DecisionDiagram() {
   const choices = [
     ['Indexed sequence', 'ArrayList'],
@@ -337,6 +295,70 @@ function RaceDiagram() {
       <span className="font-mono text-slate-500">3</span><span className="rounded-lg border border-cyan-200 p-2">load(k)</span><span className="rounded-lg border border-amber-200 p-2">load(k)</span>
       <span className="font-mono text-slate-500">4</span><span className="rounded-lg border border-cyan-200 p-2">put(k, valueA)</span><span />
       <span className="font-mono text-slate-500">5</span><span /><span className="rounded-lg border border-amber-200 p-2">put(k, valueB)</span>
+    </div>
+  </Figure>;
+}
+
+function MapModelsDiagram() {
+  const models = [
+    ['HashMap', 'bucket array → Node chains or tree bins', 'hash + equals'],
+    ['LinkedHashMap', 'HashMap entries + before/after links', 'hash + equals'],
+    ['TreeMap', 'balanced red-black search tree', 'compareTo or Comparator'],
+    ['ConcurrentHashMap', 'concurrent bucket array + specialized Nodes', 'hash + equals'],
+  ];
+  return <Figure caption="High-level storage models. The public API guarantees behavior; exact Node layouts and update mechanisms are current OpenJDK implementation details.">
+    <div className="grid gap-3 sm:grid-cols-2">
+      {models.map(([name, storage, identity]) => <article key={name} className="rounded-xl border border-slate-300 bg-white p-4">
+        <h4 className="font-sans text-base font-extrabold text-slate-950">{name}</h4>
+        <p className="mt-2 text-sm text-slate-700">{storage}</p>
+        <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700">Key identity: {identity}</p>
+      </article>)}
+    </div>
+  </Figure>;
+}
+
+function LinkedHashMapDiagram() {
+  return <Figure caption="The same LinkedHashMap entries belong to the hash structure and the encounter-order chain. Values are stored in the entries alongside their keys.">
+    <div className="space-y-4 text-center text-sm">
+      <div className="rounded-xl border border-cyan-300 bg-cyan-50 p-4 text-cyan-950">
+        <b>Hash lookup view</b>
+        <div className="mt-2 font-mono">bucket[2] → [30=C] → [10=A]</div>
+        <div className="mt-1 font-mono">bucket[5] → [20=B]</div>
+      </div>
+      <div className="text-2xl font-bold text-slate-400">same Entry objects</div>
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+        <b>Encounter-order view</b>
+        <div className="mt-2 font-mono">head → [30=C] ↔ [10=A] ↔ [20=B] → tail</div>
+      </div>
+    </div>
+  </Figure>;
+}
+
+function TreeMapDiagram() {
+  return <Figure caption="Simplified red-black tree. Every Entry stores a key-value pair plus parent, left, right, and color information. Rebalancing keeps tree height logarithmic.">
+    <div className="mx-auto max-w-lg text-center text-sm">
+      <div className="mx-auto w-28 rounded-full bg-slate-950 p-3 font-bold text-white">30 → C</div>
+      <div className="mx-auto h-7 w-1/2 border-x-2 border-t-2 border-slate-400" />
+      <div className="grid grid-cols-2 gap-16">
+        <div className="rounded-full border-2 border-red-700 bg-red-50 p-3 font-bold text-red-950">10 → A</div>
+        <div className="rounded-full border-2 border-red-700 bg-red-50 p-3 font-bold text-red-950">50 → E</div>
+      </div>
+      <div className="ml-[58%] h-6 w-[30%] border-x-2 border-t-2 border-slate-400" />
+      <div className="ml-auto grid w-[42%] grid-cols-2 gap-3">
+        <div className="rounded-full bg-slate-950 p-3 font-bold text-white">40 → D</div>
+        <div className="rounded-full bg-slate-950 p-3 font-bold text-white">70 → G</div>
+      </div>
+    </div>
+  </Figure>;
+}
+
+function ConcurrentHashMapDiagram() {
+  return <Figure caption="Simplified current OpenJDK update paths. Coordination is localized; the implementation does not put one lock around the whole map.">
+    <div className="grid gap-3 sm:grid-cols-2">
+      <article className="rounded-xl border border-cyan-300 bg-cyan-50 p-4"><b className="text-cyan-950">get(key)</b><p className="mt-2 text-sm text-slate-700">Read the table and traverse the selected bin using volatile/atomic visibility. Retrieval normally does not lock.</p></article>
+      <article className="rounded-xl border border-emerald-300 bg-emerald-50 p-4"><b className="text-emerald-950">put into empty bin</b><p className="mt-2 text-sm text-slate-700">Install the first Node with compare-and-set (CAS). No bin lock is needed when it succeeds.</p></article>
+      <article className="rounded-xl border border-amber-300 bg-amber-50 p-4"><b className="text-amber-950">update occupied bin</b><p className="mt-2 text-sm text-slate-700">Coordinate on that bin&apos;s first Node, validate it, then insert, replace, or remove inside that bin.</p></article>
+      <article className="rounded-xl border border-violet-300 bg-violet-50 p-4"><b className="text-violet-950">resize</b><p className="mt-2 text-sm text-slate-700">Threads can help transfer bins. A forwarding Node tells readers and writers to continue in the new table.</p></article>
     </div>
   </Figure>;
 }
@@ -386,21 +408,6 @@ function ArrayDequeDiagram() {
       <span className="rounded-lg bg-amber-100 p-2 text-amber-900">tail = 2 → next free slot</span>
     </div>
     <p className="mt-3 text-center text-sm text-slate-600">Logical order: A → B → C → D → E</p>
-  </Figure>;
-}
-
-function PriorityQueueDiagram() {
-  return <Figure caption="Simplified min-heap: only the smallest element is guaranteed at the root. The backing array is heap-ordered, not fully sorted.">
-    <div className="mx-auto max-w-md text-center">
-      <div className="mx-auto w-16 rounded-full border border-cyan-400 bg-cyan-50 p-3 font-bold text-slate-950">10</div>
-      <div className="mx-auto h-5 w-1/2 border-x border-t border-slate-400" />
-      <div className="grid grid-cols-2 gap-16">
-        <div className="rounded-full border border-slate-300 bg-white p-3 font-bold">20</div>
-        <div className="rounded-full border border-slate-300 bg-white p-3 font-bold">30</div>
-      </div>
-      <div className="ml-[8%] mt-2 w-[34%] rounded-full border border-slate-300 bg-white p-3 font-bold">40</div>
-    </div>
-    <div className="mt-5 rounded-lg bg-slate-100 p-3 text-center font-mono text-sm text-slate-700">backing array: [10, 20, 30, 40]</div>
   </Figure>;
 }
 
@@ -493,7 +500,7 @@ function SpokenAnswersPage() {
     <div className="answer-card"><p><code>equals()</code> must be reflexive, symmetric, transitive, and consistent, and a non-null object must not equal <code>null</code>. Equal objects must have equal hash codes, while unequal objects may collide. If I override value-based equality, I override both methods using the same stable fields.</p></div>
     <h3>Lists, sets, and deques</h3>
     <div className="answer-card"><p>I use <code>ArrayList</code> as the normal list, <code>HashSet</code> for unique membership, <code>TreeSet</code> for sorted uniqueness and range queries, and <code>ArrayDeque</code> for a stack or queue. I choose <code>LinkedList</code> only when its linked representation matches a demonstrated access pattern.</p></div>
-    <p><strong>Internal-storage headline:</strong> <code>ArrayList</code> uses a resizable array, <code>LinkedList</code> uses doubly linked Nodes, <code>ArrayDeque</code> uses a circular resizable array, <code>HashSet</code> uses hash-map keys, <code>TreeSet</code> uses sorted tree keys, and <code>PriorityQueue</code> uses an array-backed heap.</p>
+    <p><strong>Internal-storage headline:</strong> <code>ArrayList</code> uses a resizable array, <code>LinkedList</code> uses doubly linked Nodes, <code>ArrayDeque</code> uses a circular resizable array, <code>HashSet</code> uses hash-map keys, and <code>TreeSet</code> uses sorted tree keys.</p>
     <h3>Map implementations</h3>
     <div className="answer-card"><p><code>HashMap</code> is the general-purpose unordered map. <code>LinkedHashMap</code> adds predictable encounter or access order. <code>TreeMap</code> keeps keys sorted and supports navigation. <code>ConcurrentHashMap</code> supports concurrent access and atomic per-key updates without allowing <code>null</code>.</p></div>
   </div>;
@@ -749,40 +756,6 @@ function SetInternalsPage() {
   </div>;
 }
 
-function PriorityQueuePage() {
-  return <div className="article-copy">
-    <p><code>PriorityQueue</code> is a priority heap. Its head is the least element under natural ordering or the supplied comparator; it is not a FIFO queue.</p>
-    <PriorityQueueDiagram />
-    <CodeBlock code={priorityQueueCode} />
-    <div className="table-wrap"><table><thead><tr><th>Operation</th><th>Cost</th><th>Reason</th></tr></thead><tbody>
-      <tr><td><code>peek()</code></td><td>O(1)</td><td>Read the root.</td></tr>
-      <tr><td><code>offer()</code></td><td>O(log n)</td><td>Append, then sift upward.</td></tr>
-      <tr><td><code>poll()</code></td><td>O(log n)</td><td>Move the last value to the root, then sift downward.</td></tr>
-      <tr><td><code>contains(value)</code></td><td>O(n)</td><td>The heap is not globally sorted for arbitrary search.</td></tr>
-    </tbody></table></div>
-    <Callout tone="warning" title="Iteration is not priority order">Only repeated removal guarantees priority order. The iterator exposes heap storage in an unspecified traversal order.</Callout>
-  </div>;
-}
-
-function ConcurrentCollectionsPage() {
-  return <div className="article-copy">
-    <h3>CopyOnWriteArrayList</h3>
-    <p>Every mutation creates and publishes a fresh backing array. Iterators keep a snapshot reference and never observe later writes.</p>
-    <CodeBlock code={copyOnWriteCode} />
-    <p>This is excellent for small, read-mostly collections such as listener lists. It is expensive for frequent writes or large arrays.</p>
-    <h3>Concurrent and blocking queues</h3>
-    <div className="table-wrap"><table><thead><tr><th>Queue</th><th>Internal idea</th><th>Use</th></tr></thead><tbody>
-      <tr><td><b>ConcurrentLinkedQueue</b></td><td>Non-blocking linked Nodes</td><td>Scalable concurrent FIFO without backpressure.</td></tr>
-      <tr><td><b>ArrayBlockingQueue</b></td><td>Fixed bounded array</td><td>Producer-consumer flow with explicit capacity.</td></tr>
-      <tr><td><b>LinkedBlockingQueue</b></td><td>Linked Nodes, optionally bounded</td><td>Blocking producer-consumer flow.</td></tr>
-      <tr><td><b>SynchronousQueue</b></td><td>No stored capacity; direct handoff</td><td>Each producer waits for a consumer.</td></tr>
-      <tr><td><b>PriorityBlockingQueue</b></td><td>Thread-safe priority heap</td><td>Blocking retrieval by priority; logically unbounded.</td></tr>
-    </tbody></table></div>
-    <CodeBlock code={blockingQueueCode} />
-    <Callout tone="tip" title="Backpressure is a design choice">A bounded blocking queue limits memory growth and can slow producers when consumers fall behind. An unbounded queue avoids blocking producers but can accumulate work.</Callout>
-  </div>;
-}
-
 function ListsDequePage() {
   return <div className="article-copy">
     <div className="table-wrap"><table><thead><tr><th>Operation</th><th>ArrayList</th><th>LinkedList</th><th>ArrayDeque</th></tr></thead><tbody>
@@ -834,57 +807,99 @@ function SetsPage() {
   </div>;
 }
 
-function ComparatorBehaviorPage() {
-  return <div className="article-copy">
-    <p>A comparator always produces an ordering result, but the collection decides what that result means.</p>
-    <div className="table-wrap"><table><thead><tr><th>Where comparator is used</th><th>Meaning of compare(a, b) == 0</th><th>Are duplicates removed?</th></tr></thead><tbody>
-      <tr><td><b>TreeSet</b></td><td>The same set position</td><td>Yes. The second element is rejected.</td></tr>
-      <tr><td><b>TreeMap</b></td><td>The same map key</td><td>No second key; putting replaces the value.</td></tr>
-      <tr><td><b>PriorityQueue</b></td><td>The same priority</td><td>No. Both elements may remain; tie removal order is arbitrary.</td></tr>
-      <tr><td><b>List.sort()</b></td><td>Equal position in the ordering</td><td>No. Both list elements remain.</td></tr>
-      <tr><td><b>HashSet / HashMap</b></td><td>No comparator is supplied to their public constructors</td><td>Duplicates are determined by hash and <code>equals()</code>.</td></tr>
-    </tbody></table></div>
-    <h3>TreeMap follows the same key rule</h3>
-    <div className="formula text-left"><code>compare(existingKey, newKey) == 0<br />→ same TreeMap key<br />→ keep the key position and replace its value</code></div>
-    <h3>PriorityQueue keeps ties</h3>
-    <p>A priority queue uses comparison to choose which element reaches the head. Two tasks with the same priority can both be stored. Comparison zero means tied priority, not set equality.</p>
-    <Callout title="A subtle HashMap detail">Current OpenJDK can use comparable ordering to arrange colliding keys inside a tree bin. That ordering helps navigation only; HashMap key uniqueness still follows its hash-and-equality rules.</Callout>
-    <Callout tone="tip" title="Interview answer">Comparator “wins over equals” only in sorted sets and sorted maps when they decide element or key identity. In sorting and priority queues, comparison controls order while duplicates remain.</Callout>
-  </div>;
-}
-
 function MapComparisonPage() {
   return <div className="article-copy">
-    <div className="table-wrap"><table><thead><tr><th>Map</th><th>Order</th><th>Basic cost</th><th>Null keys</th><th>Thread-safe</th></tr></thead><tbody>
-      <tr><td><b>HashMap</b></td><td>None guaranteed</td><td>O(1) average</td><td>One</td><td>No</td></tr>
-      <tr><td><b>LinkedHashMap</b></td><td>Insertion or access</td><td>O(1) average</td><td>One</td><td>No</td></tr>
-      <tr><td><b>TreeMap</b></td><td>Sorted keys</td><td>O(log n)</td><td>Depends on ordering; natural order rejects</td><td>No</td></tr>
-      <tr><td><b>ConcurrentHashMap</b></td><td>None guaranteed</td><td>O(1) expected</td><td>None</td><td>Yes</td></tr>
+    <p>All four implementations satisfy the <code>Map</code> abstraction, but they organize entries differently to provide different guarantees.</p>
+    <MapModelsDiagram />
+    <div className="table-wrap"><table><thead><tr><th>Map</th><th>Internal organization</th><th>Order</th><th>Basic cost</th></tr></thead><tbody>
+      <tr><td><b>HashMap</b></td><td>Bucket array; collision Nodes can become tree bins</td><td>None guaranteed</td><td>O(1) average</td></tr>
+      <tr><td><b>LinkedHashMap</b></td><td>HashMap-style entries plus one doubly linked order chain</td><td>Insertion or access order</td><td>O(1) average</td></tr>
+      <tr><td><b>TreeMap</b></td><td>Balanced red-black tree of key-value entries</td><td>Sorted by keys</td><td>O(log n)</td></tr>
+      <tr><td><b>ConcurrentHashMap</b></td><td>Concurrent bucket array with list/tree bins and specialized control Nodes</td><td>None guaranteed</td><td>O(1) expected</td></tr>
     </tbody></table></div>
-    <CodeBlock code={mapOrderCode} />
-    <ul>
-      <li><code>HashMap</code>: general single-threaded lookup without ordering requirements.</li>
-      <li><code>LinkedHashMap</code>: predictable encounter order with extra links per entry.</li>
-      <li><code>TreeMap</code>: sorted, navigable keys and range views.</li>
-      <li><code>ConcurrentHashMap</code>: concurrent access and atomic per-key operations; no <code>null</code> keys or values.</li>
-    </ul>
+    <div className="table-wrap"><table><thead><tr><th>Map</th><th>Nulls</th><th>Thread safety</th><th>Best fit</th></tr></thead><tbody>
+      <tr><td><b>HashMap</b></td><td>One null key; null values</td><td>No</td><td>General single-threaded lookup</td></tr>
+      <tr><td><b>LinkedHashMap</b></td><td>One null key; null values</td><td>No</td><td>Predictable iteration or simple access-order policy</td></tr>
+      <tr><td><b>TreeMap</b></td><td>Natural ordering rejects null keys; null values allowed</td><td>No</td><td>Sorted traversal, ranges, and nearest keys</td></tr>
+      <tr><td><b>ConcurrentHashMap</b></td><td>No null keys or values</td><td>Yes</td><td>Shared maps with concurrent reads and updates</td></tr>
+    </tbody></table></div>
+    <Callout tone="tip" title="Interview answer">Choose <code>HashMap</code> for ordinary lookup, <code>LinkedHashMap</code> when encounter order matters, <code>TreeMap</code> when key order enables queries, and <code>ConcurrentHashMap</code> when multiple threads share mutable mappings.</Callout>
   </div>;
 }
 
-function OrderedMapsPage() {
+function MapOperationsPage() {
   return <div className="article-copy">
-    <h3>Access-ordered LinkedHashMap</h3>
-    <p>The default is insertion order. An access-ordered instance moves accessed entries from least-recently to most-recently used, which supports a simple LRU-style policy.</p>
+    <h3>How the same operation follows a different path</h3>
+    <div className="grid gap-3">
+      <article className="rounded-xl border border-slate-300 bg-white p-4"><h4 className="font-sans font-extrabold text-slate-950">HashMap</h4><ul className="mt-2 text-sm"><li><b>get:</b> hash → bucket → equality search.</li><li><b>put:</b> insert a Node or replace the equal key&apos;s value.</li><li><b>remove:</b> unlink the matching bucket Node.</li></ul></article>
+      <article className="rounded-xl border border-slate-300 bg-white p-4"><h4 className="font-sans font-extrabold text-slate-950">LinkedHashMap</h4><ul className="mt-2 text-sm"><li><b>get:</b> use hash lookup; access order may also move the entry.</li><li><b>put:</b> update the hash structure and order links.</li><li><b>remove:</b> unlink from both the bin and order chain.</li></ul></article>
+      <article className="rounded-xl border border-slate-300 bg-white p-4"><h4 className="font-sans font-extrabold text-slate-950">TreeMap</h4><ul className="mt-2 text-sm"><li><b>get:</b> compare keys while descending the tree.</li><li><b>put:</b> replace at comparison zero or add and rebalance.</li><li><b>remove:</b> delete the Entry and rebalance.</li></ul></article>
+      <article className="rounded-xl border border-slate-300 bg-white p-4"><h4 className="font-sans font-extrabold text-slate-950">ConcurrentHashMap</h4><ul className="mt-2 text-sm"><li><b>get:</b> traverse a hash bin, normally without locking.</li><li><b>put:</b> CAS an empty bin or coordinate an occupied bin.</li><li><b>remove:</b> coordinate the affected bin.</li></ul></article>
+    </div>
+    <h3>Key identity is still decisive</h3>
+    <ul>
+      <li><code>HashMap</code>, <code>LinkedHashMap</code>, and <code>ConcurrentHashMap</code> narrow by hash and confirm key identity with <code>equals()</code>.</li>
+      <li><code>TreeMap</code> uses natural ordering or its comparator. Comparison result zero means the same map key and a later <code>put()</code> replaces that key&apos;s value.</li>
+    </ul>
+    <CodeBlock code={mapOrderCode} />
+    <Callout title="Updating is not adding another key">Every Map keeps unique keys. A <code>put()</code> that finds its existing key replaces the associated value and returns the previous value; <code>size</code> does not increase.</Callout>
+  </div>;
+}
+
+function LinkedHashMapInternalsPage() {
+  return <div className="article-copy">
+    <p><code>LinkedHashMap</code> extends the hash-table model with <code>head</code>, <code>tail</code>, and <code>before</code>/<code>after</code> links on each entry. The key and value still live in that same entry.</p>
+    <LinkedHashMapDiagram />
+    <ol className="step-list">
+      <li><b>Lookup by hash.</b><span><code>get(key)</code> selects a bucket and searches by key equality, like HashMap.</span></li>
+      <li><b>Link new entries.</b><span>In insertion-order mode, a new entry becomes the tail. Replacing an existing value does not normally move its key.</span></li>
+      <li><b>Iterate through order links.</b><span>Iteration starts at <code>head</code> and follows <code>after</code>, so resizing the bucket array does not destroy encounter order.</span></li>
+      <li><b>Unlink twice on removal.</b><span>The entry leaves its hash bin and its neighbors&apos; order links are joined together.</span></li>
+    </ol>
+    <Callout title="Insertion order versus access order">The default preserves insertion order. With <code>accessOrder=true</code>, successful accesses such as <code>get()</code> move that entry to the tail, producing least-recently-used to most-recently-used order.</Callout>
+    <h3>A small access-order map</h3>
     <CodeBlock code={lruCode} />
     <Callout tone="warning" title="A demonstration, not a complete cache">This map is not thread-safe and has no expiration, loading, size-by-weight policy, or cache metrics.</Callout>
-    <h3>TreeMap ranges</h3>
-    <CodeBlock code={rangeCode} />
-    <p>A <code>HashMap</code> cannot directly provide this ordered range view. Frequent range and nearest-key operations justify the O(log n) tree cost.</p>
-    <Callout title="Comparator contract">Comparison result zero determines key identity inside a sorted map. Keep ordering consistent with the intended equality of keys.</Callout>
   </div>;
 }
 
-function ConcurrentMapPage() {
+function TreeMapInternalsPage() {
+  return <div className="article-copy">
+    <p><code>TreeMap</code> stores entries in a red-black tree. It compares the requested key with the current Node and moves left for a smaller result or right for a larger result.</p>
+    <TreeMapDiagram />
+    <ul>
+      <li><code>get(40)</code>: compare with 30, move right to 50, then left to 40.</li>
+      <li><code>put()</code>: follow the same comparison path. Result zero replaces the value; otherwise add a leaf and rebalance.</li>
+      <li><code>remove()</code>: delete the matching Entry and use rotations/recoloring when required to restore tree invariants.</li>
+      <li>Balanced height keeps <code>get</code>, <code>put</code>, and <code>remove</code> at O(log n).</li>
+    </ul>
+    <Callout tone="warning" title="Comparison defines key identity">If the comparator returns zero for two keys that <code>equals()</code> considers different, TreeMap still treats them as one key position and replaces the value.</Callout>
+    <h3>Navigation and live range views</h3>
+    <CodeBlock code={rangeCode} />
+    <p><code>floorEntry</code>, <code>ceilingEntry</code>, <code>lowerEntry</code>, and <code>higherEntry</code> find neighboring keys. <code>subMap</code>, <code>headMap</code>, and <code>tailMap</code> return backed views: changes in the view affect the original map and must stay inside the view&apos;s boundaries.</p>
+    <Callout title="Why pay O(log n)?">TreeMap is valuable when sorting, nearest-key lookup, or range traversal is part of the workload. If the only requirement is exact-key lookup, HashMap is usually simpler and faster on average.</Callout>
+  </div>;
+}
+
+function ConcurrentHashMapInternalsPage() {
+  return <div className="article-copy">
+    <p><code>ConcurrentHashMap</code> is a concurrent hash table designed so reads can proceed while updates occur. The API promises thread-safe operations; the details below describe current OpenJDK.</p>
+    <ConcurrentHashMapDiagram />
+    <h3>What its bins can contain</h3>
+    <ul>
+      <li><b>Ordinary Nodes:</b> hash, key, value, and <code>next</code> links for common bins.</li>
+      <li><b>Tree bins:</b> balanced trees limit long collision searches.</li>
+      <li><b>Forwarding Nodes:</b> temporary markers that redirect operations to a new table during resize.</li>
+      <li><b>Reservation Nodes:</b> temporary placeholders used by computations such as <code>computeIfAbsent()</code>.</li>
+    </ul>
+    <h3>Concurrency consequences</h3>
+    <p>Reads are normally nonblocking. Updates to different bins can progress independently, while competing updates to the same occupied bin may wait for one another. During resizing, multiple threads can help transfer different groups of bins.</p>
+    <Callout title="Why null is forbidden"><code>get(key) == null</code> must unambiguously mean “no mapping” during concurrent activity. Therefore ConcurrentHashMap rejects both null keys and null values.</Callout>
+    <p>Iterators are <strong>weakly consistent</strong>: they do not throw <code>ConcurrentModificationException</code>, may observe some concurrent changes, and are not a frozen snapshot.</p>
+  </div>;
+}
+
+function AtomicMapUpdatesPage() {
   return <div className="article-copy">
     <p><code>ConcurrentHashMap</code> makes its operations thread-safe, but separate calls do not become one atomic workflow.</p>
     <CodeBlock code={raceCode} />
@@ -898,7 +913,7 @@ function ConcurrentMapPage() {
     </ul>
     <CodeBlock code={countingCode} />
     <Callout tone="warning" title="Keep computations short">A concurrent-map computation can block competing updates for the affected area. Its function should be small and must not recursively update the same map.</Callout>
-    <p>Its iterators are <strong>weakly consistent</strong>: they do not throw <code>ConcurrentModificationException</code>, may reflect some concurrent updates, and are not a frozen snapshot.</p>
+    <Callout title="Choose the operation from the rule"><code>putIfAbsent</code> expresses “initialize only.” <code>computeIfAbsent</code> expresses “create when missing.” <code>compute</code> expresses “derive from current mapping.” <code>merge</code> expresses “combine an incoming value.”</Callout>
   </div>;
 }
 
@@ -911,8 +926,8 @@ function MockInterviewPage() {
       <details><summary>How does ArrayList store values and grow?</summary><p>It stores element references in a resizable array and tracks size separately from capacity. Indexed access reads one slot. Most appends write one slot; when full, it allocates a larger array and copies references, making append O(1) amortized.</p></details>
       <details><summary>Why can an indexed LinkedList loop be O(n²)?</summary><p>Every <code>get(i)</code> traverses Nodes from the nearer end. Repeating that traversal for all indices accumulates quadratic work; use an iterator or enhanced for-loop to traverse once.</p></details>
       <details><summary>When is TreeSet better than HashSet?</summary><p>When continuously sorted values, ranges, or neighbor queries justify O(log n). Mention that comparison result zero defines duplicates.</p></details>
-      <details><summary>Does a comparator remove duplicates in every collection?</summary><p>No. <code>TreeSet</code> rejects a second element and <code>TreeMap</code> replaces the value when comparison is zero. <code>PriorityQueue</code> and a sorted List keep both values; comparison controls their order only.</p></details>
-      <details><summary>Does iterating PriorityQueue return sorted order?</summary><p>No. Only repeated <code>poll()</code> follows priority order. Its iterator exposes heap storage in an unspecified traversal order.</p></details>
+      <details><summary>How does LinkedHashMap keep order without losing fast lookup?</summary><p>The same entries participate in hash bins for average O(1) lookup and in a doubly linked encounter-order chain for iteration.</p></details>
+      <details><summary>Why does TreeMap use comparison instead of equals?</summary><p>Its search-tree position is determined by natural ordering or a comparator. Comparison zero therefore means the same key position and a later value replaces the previous one.</p></details>
       <details><summary>Is containsKey() followed by put() safe on ConcurrentHashMap?</summary><p>The calls are safe separately, but the compound decision races. Use putIfAbsent, compute, computeIfAbsent, or merge.</p></details>
     </div>
     <h3>Senior differentiators</h3>
@@ -928,7 +943,7 @@ function MockInterviewPage() {
 function RecapPage() {
   return <div className="article-copy">
     <h3>Daily selection matrix</h3>
-    <div className="formula text-left"><code>Indexed sequence&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → ArrayList<br />Stack or queue ends&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → ArrayDeque<br />Retrieve by priority&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → PriorityQueue<br />Unique membership&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → HashSet<br />Sorted unique values&nbsp;&nbsp;&nbsp;&nbsp; → TreeSet<br /><br />General key lookup&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → HashMap<br />Stable encounter order&nbsp;&nbsp; → LinkedHashMap<br />Sorted keys and ranges&nbsp;&nbsp; → TreeMap<br />Concurrent key access&nbsp;&nbsp;&nbsp;&nbsp; → ConcurrentHashMap<br />Bounded producer-consumer → ArrayBlockingQueue</code></div>
+    <div className="formula text-left"><code>Indexed sequence&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → ArrayList<br />Stack or queue ends&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → ArrayDeque<br />Unique membership&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → HashSet<br />Sorted unique values&nbsp;&nbsp;&nbsp;&nbsp; → TreeSet<br /><br />General key lookup&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → HashMap<br />Stable encounter order&nbsp;&nbsp; → LinkedHashMap<br />Sorted keys and ranges&nbsp;&nbsp; → TreeMap<br />Concurrent key access&nbsp;&nbsp;&nbsp;&nbsp; → ConcurrentHashMap</code></div>
     <div className="answer-card"><p><strong>Memory hook:</strong> Correct equality makes collections trustworthy. Access pattern selects the collection. Ordering, sorting, and concurrency select the map.</p></div>
     <div className="sources">
       <p className="eyebrow">Primary references</p>
@@ -940,13 +955,13 @@ function RecapPage() {
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/TreeSet.html" target="_blank" rel="noreferrer">TreeSet API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/HashSet.html" target="_blank" rel="noreferrer">HashSet API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/LinkedHashSet.html" target="_blank" rel="noreferrer">LinkedHashSet API <ArrowRight /></a>
-      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/PriorityQueue.html" target="_blank" rel="noreferrer">PriorityQueue API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/EnumSet.html" target="_blank" rel="noreferrer">EnumSet API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/LinkedHashMap.html" target="_blank" rel="noreferrer">LinkedHashMap API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/TreeMap.html" target="_blank" rel="noreferrer">TreeMap API <ArrowRight /></a>
-      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/CopyOnWriteArrayList.html" target="_blank" rel="noreferrer">CopyOnWriteArrayList API <ArrowRight /></a>
-      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/BlockingQueue.html" target="_blank" rel="noreferrer">BlockingQueue API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html" target="_blank" rel="noreferrer">ConcurrentHashMap API <ArrowRight /></a>
+      <a href="https://github.com/openjdk/jdk25u/blob/master/src/java.base/share/classes/java/util/LinkedHashMap.java" target="_blank" rel="noreferrer">OpenJDK 25 LinkedHashMap source <ArrowRight /></a>
+      <a href="https://github.com/openjdk/jdk25u/blob/master/src/java.base/share/classes/java/util/TreeMap.java" target="_blank" rel="noreferrer">OpenJDK 25 TreeMap source <ArrowRight /></a>
+      <a href="https://github.com/openjdk/jdk25u/blob/master/src/java.base/share/classes/java/util/concurrent/ConcurrentHashMap.java" target="_blank" rel="noreferrer">OpenJDK 25 ConcurrentHashMap source <ArrowRight /></a>
     </div>
   </div>;
 }
@@ -968,12 +983,12 @@ export const javaCollectionsPages: ReadingPage[] = [
   { id: 'lists-and-deques', chapter: 'Collection choice', title: 'ArrayList, LinkedList, and ArrayDeque', Content: ListsDequePage },
   { id: 'set-internals', chapter: 'Set internals', title: 'How Set implementations store values', Content: SetInternalsPage },
   { id: 'sets', chapter: 'Collection choice', title: 'HashSet and TreeSet', Content: SetsPage },
-  { id: 'comparator-behavior', chapter: 'Ordering', title: 'How Comparator behaves across collections', Content: ComparatorBehaviorPage },
-  { id: 'priority-queue', chapter: 'Queue internals', title: 'How PriorityQueue works internally', Content: PriorityQueuePage },
-  { id: 'concurrent-collections', chapter: 'Concurrency', title: 'Concurrent and blocking collections', Content: ConcurrentCollectionsPage },
   { id: 'map-comparison', chapter: 'Map choice', title: 'Comparing the main Map implementations', Content: MapComparisonPage },
-  { id: 'ordered-maps', chapter: 'Map choice', title: 'Ordering, LRU behavior, and ranges', Content: OrderedMapsPage },
-  { id: 'concurrent-maps', chapter: 'Concurrency', title: 'ConcurrentHashMap and atomic updates', Content: ConcurrentMapPage },
+  { id: 'map-operations', chapter: 'Map internals', title: 'How Map operations differ internally', Content: MapOperationsPage },
+  { id: 'linkedhashmap-internals', chapter: 'Map internals', title: 'How LinkedHashMap works internally', Content: LinkedHashMapInternalsPage },
+  { id: 'treemap-internals', chapter: 'Map internals', title: 'How TreeMap works internally', Content: TreeMapInternalsPage },
+  { id: 'concurrenthashmap-internals', chapter: 'Map internals', title: 'How ConcurrentHashMap works internally', Content: ConcurrentHashMapInternalsPage },
+  { id: 'atomic-map-updates', chapter: 'Concurrency', title: 'Atomic updates with ConcurrentHashMap', Content: AtomicMapUpdatesPage },
   { id: 'mock-interview', chapter: 'Daily review', title: 'Progressive mock interview', Content: MockInterviewPage },
   { id: 'recap', chapter: 'Daily review', title: 'Daily selection recap', Content: RecapPage },
 ];
