@@ -1,88 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CirclePause, CirclePlay, FastForward, RotateCcw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 import { Callout, CodeBlock, Figure } from '@/components/answer-primitives';
 import type { ReadingPage } from '@/lib/reading';
-
-type Entry = { key: string; value: string; hash: number; bucket: number };
-const operations = [
-  { key: 'Ada', value: 'Platform', hash: 5, bucket: 1, verb: 'insert', note: 'Bucket 1 is empty, so HashMap installs the first node.' },
-  { key: 'Linus', value: 'Kernel', hash: 13, bucket: 1, verb: 'collide', note: 'Different key, same bucket. equals() is false, so a second node joins the bin.' },
-  { key: 'Grace', value: 'Compiler', hash: 2, bucket: 2, verb: 'insert', note: 'The spread hash selects bucket 2, which is currently empty.' },
-  { key: 'Ada', value: 'Architecture', hash: 5, bucket: 1, verb: 'replace', note: 'Same hash and equal key. HashMap replaces the value; size does not change.' },
-] as const;
-
-const initialBuckets = () => Array.from({ length: 4 }, () => [] as Entry[]);
-
-function stateAt(step: number) {
-  const buckets = initialBuckets();
-  operations.slice(0, step).forEach((op) => {
-    const bucket = buckets[op.bucket];
-    const existing = bucket.find((e) => e.hash === op.hash && e.key === op.key);
-    if (existing) existing.value = op.value;
-    else bucket.push({ key: op.key, value: op.value, hash: op.hash, bucket: op.bucket });
-  });
-  return buckets;
-}
-
-function ControlButton({ children, ...props }: React.ComponentProps<typeof Button>) {
-  return <Button variant="outline" size="sm" className="h-9 border-slate-300 bg-white px-3 font-bold text-slate-700" {...props}>{children}</Button>;
-}
-
-function InsertionLab() {
-  const [step, setStep] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const buckets = useMemo(() => stateAt(step), [step]);
-  const op = operations[Math.min(step, operations.length - 1)];
-
-  useEffect(() => {
-    if (!playing || step >= operations.length) return;
-    const timer = window.setTimeout(() => {
-      const nextStep = step + 1;
-      setStep(nextStep);
-      if (nextStep >= operations.length) setPlaying(false);
-    }, 1500);
-    return () => window.clearTimeout(timer);
-  }, [playing, step]);
-
-  return <Figure caption="Capacity is deliberately reduced to 4 and hashes are illustrative. Real HashMap capacities and hashes differ.">
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-      <div><p className="eyebrow">Interactive · {step}/{operations.length}</p><h3 className="mt-1 text-xl font-extrabold text-slate-950">Put pipeline</h3></div>
-      <fieldset className="flex flex-wrap gap-2" aria-label="Insertion animation controls">
-        <ControlButton onClick={() => setPlaying((p) => !p)} disabled={step >= operations.length}>{playing ? <CirclePause /> : <CirclePlay />}{playing ? 'Pause' : 'Play'}</ControlButton>
-        <ControlButton onClick={() => { setPlaying(false); setStep((s) => Math.min(s + 1, operations.length)); }} disabled={step >= operations.length}><FastForward />Next</ControlButton>
-        <ControlButton onClick={() => { setPlaying(false); setStep(0); }}><RotateCcw />Reset</ControlButton>
-      </fieldset>
-    </div>
-
-    <div className="grid gap-5 lg:grid-cols-[240px_1fr]">
-      <div className="rounded-xl bg-slate-950 p-4 text-white">
-        <p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-500">Current operation</p>
-        {step < operations.length ? <>
-          <p className="mt-4 font-mono text-sm text-cyan-300">put(&quot;{op.key}&quot;, &quot;{op.value}&quot;)</p>
-          <div className="mt-5 space-y-2 text-xs text-slate-300">
-            <div className="flex justify-between"><span>illustrative hash</span><strong className="font-mono text-white">{op.hash}</strong></div>
-            <div className="flex justify-between"><span>(4 − 1) &amp; hash</span><strong className="font-mono text-white">{op.bucket}</strong></div>
-            <div className="flex justify-between"><span>operation</span><strong className={`rounded px-1.5 py-0.5 ${op.verb === 'collide' ? 'bg-amber-400 text-amber-950' : op.verb === 'replace' ? 'bg-fuchsia-400 text-fuchsia-950' : 'bg-emerald-400 text-emerald-950'}`}>{op.verb}</strong></div>
-          </div>
-        </> : <div className="mt-4"><p className="font-bold text-emerald-300">Sequence complete</p><p className="mt-2 text-xs leading-5 text-slate-400">Three mappings remain. Ada&apos;s second put replaced its value.</p></div>}
-      </div>
-
-      <div className="space-y-2" aria-live="polite">
-        {buckets.map((entries, index) => <div key={index} className={`bucket-row ${step > 0 && step <= operations.length && op.bucket === index ? 'bucket-active' : ''}`}>
-          <span className="bucket-index">{index}</span>
-          <span className="bucket-slot">bucket</span>
-          <div className="flex min-w-0 items-center gap-2 overflow-x-auto py-1">
-            {entries.length === 0 ? <span className="text-xs italic text-slate-400">null</span> : entries.map((entry, i) => <div key={entry.key} className="flex shrink-0 items-center gap-2"><div className="node-card"><strong>{entry.key}</strong><span>{entry.value}</span></div>{i < entries.length - 1 && <ArrowRight className="size-4 shrink-0 text-slate-300" />}</div>)}
-          </div>
-        </div>)}
-      </div>
-    </div>
-    <div className="mt-4 rounded-lg bg-cyan-50 px-4 py-3 text-sm leading-6 text-cyan-950" aria-live="polite">{step === 0 ? 'Press Next or Play to insert the first mapping.' : operations[step - 1].note}</div>
-  </Figure>;
-}
 
 function HashPipeline() {
   return <Figure caption="This is a teaching example: UserId(42) is the key, 42 is the user's ID, hashCode() is assumed to return 42, and the table has 16 buckets.">
@@ -97,19 +17,6 @@ function HashPipeline() {
       ].map((box, i) => <g key={box.x}><rect x={box.x} y="76" width={box.w} height="105" rx="16" fill={box.color} stroke={i === 3 ? '#06b6d4' : '#cbd5e1'} /><text x={box.x + 18} y="107" fontSize="11" fontWeight="800" letterSpacing="1.2" fill="#64748b">{box.eyebrow}</text><text x={box.x + 18} y="143" fontSize="16" fontWeight="800" fill="#0f172a">{box.main}</text>{i < 3 && <path d={`M${box.x + box.w + 12},128 H${box.x + box.w + 48}`} stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrow)" />}</g>)}
       <text x="20" y="220" fontSize="12" fill="#64748b">Result: HashMap searches bucket 10. Another key or table capacity can produce a different bucket.</text>
     </svg>
-  </Figure>;
-}
-
-function ResizeLab() {
-  const [expanded, setExpanded] = useState(false);
-  const items = [{ key: 'A', hash: 1 }, { key: 'B', hash: 5 }, { key: 'C', hash: 9 }];
-  return <Figure caption="When capacity doubles from 4 to 8, each node stays at its old index or moves by oldCapacity. OpenJDK can split a bin without recomputing every hash.">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="eyebrow">Interactive resize</p><h3 className="mt-1 text-xl font-extrabold text-slate-950">One bit decides the move</h3></div><Button onClick={() => setExpanded((v) => !v)} className="bg-cyan-500 font-bold text-slate-950 hover:bg-cyan-400">{expanded ? <><RotateCcw />Return to capacity 4</> : <><FastForward />Double to capacity 8</>}</Button></div>
-    <div className="mt-7 grid items-center gap-6 sm:grid-cols-[1fr_auto_1fr]">
-      <div><p className="mb-3 text-center text-xs font-bold text-slate-500">Before · capacity 4</p><div className="resize-column">{[0,1,2,3].map((i) => <div key={i} className={i === 1 ? 'resize-bucket active' : 'resize-bucket'}><span>{i}</span>{i === 1 && <div>{items.map((e) => <b key={e.key}>{e.key}<small>h={e.hash}</small></b>)}</div>}</div>)}</div></div>
-      <ArrowRight className={`mx-auto size-6 text-cyan-500 transition-transform duration-500 ${expanded ? 'translate-x-1' : '-translate-x-1 opacity-40'}`} />
-      <div className={`transition-opacity duration-300 ${expanded ? 'opacity-100' : 'opacity-35'}`}><p className="mb-3 text-center text-xs font-bold text-slate-500">After · capacity 8</p><div className="resize-column">{[0,1,2,3,4,5,6,7].map((i) => <div key={i} className={i === 1 || i === 5 ? 'resize-bucket active' : 'resize-bucket'}><span>{i}</span>{i === 1 && <div>{[items[0],items[2]].map((e) => <b key={e.key}>{e.key}<small>h={e.hash}</small></b>)}</div>}{i === 5 && <div><b>B<small>h=5</small></b></div>}</div>)}</div></div>
-    </div>
   </Figure>;
 }
 
@@ -281,7 +188,6 @@ function PutGetPage() {
       <div className="formula text-left"><code>Same bucket + equals() true&nbsp; → replace the value<br />Same bucket + equals() false → add another entry</code></div>
       <p>Example:</p><CodeBlock code={equalKeysCode} />
       <p>If equality is based on <code>id</code>, the map contains only one entry because both keys are considered equal.</p>
-      <InsertionLab />
       <h3>How get() works</h3>
       <p>For <code>map.get(key)</code>, <code>HashMap</code>:</p>
       <ol className="step-list"><li><b>Calculates the key&apos;s hash.</b></li><li><b>Finds the corresponding bucket.</b></li><li><b>Searches the Nodes inside that bucket.</b><span>It checks each candidate Node&apos;s stored hash and key until it finds a match.</span></li><li><b>Returns the value belonging to the matching key.</b></li></ol>
@@ -361,7 +267,6 @@ function PerformancePage() {
   return <div className="article-copy">
       <p>The default initial capacity is <code>16</code>, and the default load factor is <code>0.75</code>.</p>
       <p>When the number of entries exceeds <code>capacity × load factor</code>, the map increases its capacity and redistributes entries across the new bucket array. This is called resizing.</p>
-      <ResizeLab />
       <p>Average performance is:</p>
       <div className="table-wrap"><table><thead><tr><th>Operation</th><th>Average performance</th></tr></thead><tbody><tr><td><code>put()</code></td><td><b>O(1)</b></td></tr><tr><td><code>get()</code></td><td><b>O(1)</b></td></tr><tr><td><code>remove()</code></td><td><b>O(1)</b></td></tr></tbody></table></div>
       <h3>Important properties</h3>
