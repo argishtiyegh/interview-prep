@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, BookOpen, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,16 +31,25 @@ function PageControls({ start, step, total, goTo }: { start: number; step: numbe
 }
 
 export function BookReader({ pages }: { pages: ReadingPage[] }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const requested = Number(searchParams.get('page') ?? '1');
-  const current = Number.isInteger(requested) && requested >= 1 && requested <= pages.length ? requested : 1;
+  const [current, setCurrent] = useState(1);
   const spreadStart = Math.floor((current - 1) / 2) * 2 + 1;
 
   const goTo = useCallback((page: number) => {
-    router.push(`${pathname}?page=${page}`);
-  }, [pathname, router]);
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', String(page));
+    window.history.pushState({}, '', url);
+    setCurrent(page);
+  }, []);
+
+  useEffect(() => {
+    const readPageFromUrl = () => {
+      const requested = Number(new URL(window.location.href).searchParams.get('page') ?? '1');
+      setCurrent(Number.isInteger(requested) && requested >= 1 && requested <= pages.length ? requested : 1);
+    };
+    readPageFromUrl();
+    window.addEventListener('popstate', readPageFromUrl);
+    return () => window.removeEventListener('popstate', readPageFromUrl);
+  }, [pages.length]);
 
   useEffect(() => {
     const focusTimer = window.setTimeout(() => {

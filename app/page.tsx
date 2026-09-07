@@ -1,5 +1,8 @@
-import { redirect } from 'next/navigation';
+import { LibraryShell } from '@/components/library-shell';
+import { questions } from '@/lib/questions';
+
+export const dynamic = 'force-static';
 
 export default function Home() {
-  redirect('/questions/how-java-hashmap-works');
+  return <LibraryShell question={questions[0]} />;
 }
