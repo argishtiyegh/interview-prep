@@ -700,10 +700,32 @@ function SetInternalsPage() {
       <tr><td><b>TreeSet</b></td><td>Navigable tree map keys</td><td>Comparison result zero</td><td>Sorted</td></tr>
       <tr><td><b>EnumSet</b></td><td>Bit vector keyed by enum ordinal</td><td>Same enum constant</td><td>Enum declaration order</td></tr>
     </tbody></table></div>
+    <h3>How HashSet iteration works</h3>
+    <p><code>HashSet</code> iterates through its backing hash table rather than remembering when elements were added. It scans bucket indexes and, for every non-empty bucket, follows the Nodes stored in that bucket.</p>
+    <p>Suppose the program adds <code>C</code>, then <code>A</code>, then <code>B</code>. This reduced-capacity example uses illustrative bucket positions:</p>
+    <div className="formula text-left"><code>insertion sequence: C → A → B<br /><br />bucket[0] → empty<br />bucket[1] → B<br />bucket[2] → empty<br />bucket[3] → C → A&nbsp;&nbsp; (collision Nodes)</code></div>
+    <ol className="step-list">
+      <li><b>Scan bucket 0.</b><span>It is empty, so return nothing.</span></li>
+      <li><b>Scan bucket 1.</b><span>Return <code>B</code>, then follow that bucket&apos;s Node chain until it ends.</span></li>
+      <li><b>Scan bucket 2.</b><span>It is empty, so continue.</span></li>
+      <li><b>Scan bucket 3.</b><span>Return <code>C</code>, then follow the next collision Node and return <code>A</code>.</span></li>
+    </ol>
+    <div className="answer-card"><p>The illustrative iteration is therefore <code>B, C, A</code>, although insertion was <code>C, A, B</code>. This exact order is not guaranteed: hashes, capacity, collisions, resizing, and implementation details can change it.</p></div>
+    <Callout tone="warning" title="Iteration cost"><code>HashSet</code> iteration can inspect empty buckets as well as stored entries, so its cost is proportional to backing capacity plus size. Choosing an unnecessarily large initial capacity can make iteration slower.</Callout>
     <h3>How LinkedHashSet preserves insertion order</h3>
     <Callout tone="tip" title="Does LinkedHashSet store elements only in a doubly linked list?"><strong>No.</strong> Like <code>HashSet</code>, it uses elements as keys in a hash-based backing structure and maps them to one shared placeholder value. Its entries additionally carry <code>before</code> and <code>after</code> links. One entry therefore belongs to two structures at the same time: a hash bucket for fast lookup and the doubly linked encounter-order chain for predictable iteration.</Callout>
     <p><code>LinkedHashSet</code> combines the membership behavior of a hash set with a doubly linked list running through every entry. The hash structure answers <em>“is this element present?”</em>; the linked chain answers <em>“which element comes next during iteration?”</em></p>
     <LinkedHashSetDiagram />
+    <h3>How iteration works</h3>
+    <p>Suppose the program adds <code>C</code>, then <code>A</code>, then <code>B</code>. Their hashes may place the entries in unrelated buckets, but their encounter-order links still record the original sequence:</p>
+    <div className="formula text-left"><code>possible hash structure:<br />bucket[1] → B<br />bucket[3] → C<br />bucket[6] → A<br /><br />encounter-order chain:<br />eldest → C ↔ A ↔ B → youngest</code></div>
+    <p>The iterator does not scan those buckets. It starts with the eldest entry, returns its element, and repeatedly follows the entry&apos;s <code>after</code> link:</p>
+    <ol className="step-list">
+      <li><b>Return C.</b><span>Follow <code>C.after</code> to <code>A</code>.</span></li>
+      <li><b>Return A.</b><span>Follow <code>A.after</code> to <code>B</code>.</span></li>
+      <li><b>Return B.</b><span><code>B.after</code> reaches the end, so iteration stops.</span></li>
+    </ol>
+    <Callout title="Two structures, two jobs"><code>contains(&quot;A&quot;)</code> and <code>remove(&quot;A&quot;)</code> use hashing to find the entry. <code>iterator()</code>, <code>forEach()</code>, and an ordered sequential <code>stream()</code> observe the linked encounter order.</Callout>
     <ol className="step-list">
       <li><b>Hash and find the bucket.</b><span><code>hashCode()</code> selects the bucket, then <code>equals()</code> checks matching entries.</span></li>
       <li><b>Reject an existing element.</b><span>If an equal entry exists, ordinary <code>add()</code> returns <code>false</code>. It creates no Node and does not change its position.</span></li>
@@ -916,6 +938,7 @@ function RecapPage() {
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/LinkedList.html" target="_blank" rel="noreferrer">LinkedList API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/ArrayDeque.html" target="_blank" rel="noreferrer">ArrayDeque API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/TreeSet.html" target="_blank" rel="noreferrer">TreeSet API <ArrowRight /></a>
+      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/HashSet.html" target="_blank" rel="noreferrer">HashSet API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/LinkedHashSet.html" target="_blank" rel="noreferrer">LinkedHashSet API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/PriorityQueue.html" target="_blank" rel="noreferrer">PriorityQueue API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/EnumSet.html" target="_blank" rel="noreferrer">EnumSet API <ArrowRight /></a>
