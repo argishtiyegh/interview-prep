@@ -21,13 +21,15 @@ function HashPipeline() {
 }
 
 function TreeDiagram() {
-  return <Figure caption="Tree bins are red-black trees in current OpenJDK implementations. Their exact shape is an implementation detail.">
+  const collidingOrderIds = ['12', '28', '44', '60', '76', '92', '108', '124', '140'];
+
+  return <Figure caption="Simplified example with nine different order ID keys deliberately chosen to collide in one bucket. Each number is an order ID key, not a bucket index. In current OpenJDK, a bin is considered for treeification when an insertion makes it exceed eight Nodes and the table has at least 64 buckets. The exact tree shape is an implementation detail.">
     <div className="grid items-center gap-7 sm:grid-cols-[1fr_auto_1fr]">
-      <div><p className="mb-3 text-center text-xs font-bold text-slate-600">Linked bin · eight colliding Nodes</p><div className="flex items-center justify-center">{['K1','K2','K3','K4','K5','K6','K7','K8'].map((k,i) => <div key={k} className="flex items-center"><span className="grid size-8 place-items-center rounded-full border border-amber-400 bg-amber-50 text-[10px] font-bold text-amber-950">{k}</span>{i < 7 && <ArrowRight className="size-3 shrink-0 text-slate-400" />}</div>)}</div></div>
+      <div><p className="mb-3 text-center text-xs font-bold text-slate-600">One bucket · nine colliding order ID Nodes</p><div className="flex flex-wrap items-center justify-center gap-y-1">{collidingOrderIds.map((orderId,i) => <div key={orderId} className="flex items-center"><span className="grid size-8 place-items-center rounded-full border border-amber-400 bg-amber-50 text-[9px] font-bold text-amber-950">{orderId}</span>{i < collidingOrderIds.length - 1 && <ArrowRight className="size-3 shrink-0 text-slate-400" />}</div>)}</div></div>
       <ArrowRight className="mx-auto rotate-90 text-cyan-500 sm:rotate-0" />
-      <svg viewBox="0 0 300 205" className="mx-auto w-full max-w-[310px]" aria-label="Simplified balanced tree containing K1 through K8"><g stroke="#94a3b8" strokeWidth="2"><path d="M140 32L75 82M140 32l60 50M75 82l-40 48M75 82l35 48M200 82l-35 48M200 82l35 48M235 130l35 48" /></g>{[[140,26,'K4'],[75,80,'K2'],[200,80,'K6'],[35,128,'K1'],[110,128,'K3'],[165,128,'K5'],[235,128,'K7'],[270,176,'K8']].map(([x,y,k],i) => <g key={String(k)}><circle cx={Number(x)} cy={Number(y)} r="20" fill={i === 1 || i === 2 ? '#17324d' : '#cffafe'} stroke={i === 1 || i === 2 ? '#17324d' : '#06b6d4'} /><text x={Number(x)} y={Number(y)+4} textAnchor="middle" fontSize="11" fontWeight="800" fill={i === 1 || i === 2 ? 'white' : '#164e63'}>{k}</text></g>)}</svg>
+      <svg viewBox="0 0 300 205" className="mx-auto w-full max-w-[310px]" aria-label="Simplified balanced tree containing nine colliding order ID keys: 12, 28, 44, 60, 76, 92, 108, 124, and 140"><g stroke="#94a3b8" strokeWidth="2"><path d="M150 28L85 78M150 28l65 50M85 78l-42 50M85 78l42 50M215 78l-42 50M215 78l42 50M43 128l-20 52M257 128l20 52" /></g>{[[150,26,'76'],[85,76,'44'],[215,76,'108'],[43,126,'28'],[127,126,'60'],[173,126,'92'],[257,126,'124'],[23,178,'12'],[277,178,'140']].map(([x,y,orderId],i) => <g key={String(orderId)}><circle cx={Number(x)} cy={Number(y)} r="19" fill={i === 1 || i === 2 ? '#17324d' : '#cffafe'} stroke={i === 1 || i === 2 ? '#17324d' : '#06b6d4'} /><text x={Number(x)} y={Number(y)+4} textAnchor="middle" fontSize="10" fontWeight="800" fill={i === 1 || i === 2 ? 'white' : '#164e63'}>{orderId}</text></g>)}</svg>
     </div>
-    <div className="mt-6 grid gap-2 sm:grid-cols-3"><div className="metric"><span>8</span><small>treeify threshold</small></div><div className="metric"><span>64</span><small>minimum capacity</small></div><div className="metric"><span>6</span><small>untreeify threshold on split</small></div></div>
+    <div className="mt-6 grid gap-2 sm:grid-cols-3"><div className="metric"><span>&gt; 8</span><small>Nodes after insertion</small></div><div className="metric"><span>≥ 64</span><small>table capacity</small></div><div className="metric"><span>≤ 6</span><small>untreeify during split</small></div></div>
   </Figure>;
 }
 
@@ -132,20 +134,20 @@ users.add(user);
 users.size();         // may become 2`;
 
 function HashSetBackingDiagram() {
-  return <Figure caption="HashSet delegates element storage to a backing HashMap: each set element becomes a map key and every key points to the same placeholder object.">
+  return <Figure caption="Example with the set element UserId(42). HashSet stores that element as a key in its backing HashMap; every key points to the same internal PRESENT placeholder object.">
     <svg viewBox="0 0 780 260" aria-labelledby="set-title set-desc" className="h-auto w-full">
       <title id="set-title">How HashSet uses HashMap</title><desc id="set-desc">A HashSet add operation becomes a HashMap put operation using the element as key and PRESENT as value.</desc>
       <defs><marker id="set-arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#06b6d4" /></marker></defs>
       <rect x="25" y="54" width="205" height="145" rx="18" fill="#f8fafc" stroke="#cbd5e1" />
       <text x="48" y="84" fontSize="11" fontWeight="800" letterSpacing="1.2" fill="#64748b">HASHSET API</text>
-      <text x="48" y="128" fontSize="17" fontWeight="800" fill="#0f172a">users.add(user)</text>
+      <text x="48" y="128" fontSize="17" fontWeight="800" fill="#0f172a">users.add(UserId(42))</text>
       <text x="48" y="158" fontSize="12" fill="#64748b">Is this element already present?</text>
       <path d="M247 127H327" stroke="#06b6d4" strokeWidth="3" markerEnd="url(#set-arrow)" />
       <text x="255" y="112" fontSize="10" fontWeight="800" fill="#0891b2">DELEGATES</text>
       <rect x="348" y="32" width="405" height="190" rx="18" fill="#ecfeff" stroke="#06b6d4" />
       <text x="373" y="65" fontSize="11" fontWeight="800" letterSpacing="1.2" fill="#0e7490">BACKING HASHMAP</text>
       <rect x="374" y="91" width="142" height="82" rx="12" fill="#fff" stroke="#bae6fd" />
-      <text x="394" y="118" fontSize="10" fontWeight="800" fill="#64748b">KEY</text><text x="394" y="148" fontSize="16" fontWeight="800" fill="#0f172a">user</text>
+      <text x="394" y="118" fontSize="10" fontWeight="800" fill="#64748b">MAP KEY / SET ELEMENT</text><text x="394" y="148" fontSize="16" fontWeight="800" fill="#0f172a">UserId(42)</text>
       <path d="M527 132H574" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#set-arrow)" />
       <rect x="594" y="91" width="132" height="82" rx="12" fill="#0f172a" />
       <text x="614" y="118" fontSize="10" fontWeight="800" fill="#94a3b8">VALUE</text><text x="614" y="148" fontSize="16" fontWeight="800" fill="#67e8f9">PRESENT</text>
@@ -197,9 +199,20 @@ function PutGetPage() {
 
 function CollisionPage() {
   return <div className="article-copy">
-      <p>Different keys can produce the same bucket:</p>
-      <CodeBlock label="Condition" code={`key1.hashCode() == key2.hashCode()\nkey1.equals(key2) == false`} />
-      <p>This is called a hash collision. Both entries can still exist in the same bucket.</p>
+      <p>Different keys can produce the same hash and therefore the same bucket. This teaching-only key deliberately uses a poor hash function so the collision is easy to see:</p>
+      <CodeBlock label="Illustrative collision" code={`record OrderId(int value) {
+    @Override
+    public int hashCode() {
+        return value % 4; // deliberately weak; do not use in production
+    }
+}
+
+OrderId firstOrder = new OrderId(12);
+OrderId secondOrder = new OrderId(28);
+
+firstOrder.hashCode() == secondOrder.hashCode(); // true: both return 0
+firstOrder.equals(secondOrder);                  // false: 12 is not 28`} />
+      <p>This is a hash collision. The two order IDs are unequal, so both Nodes can exist in the same bucket.</p>
       <p>Colliding entries are initially organized as a linked list. In Java 8+, a heavily populated bucket may be converted into a red-black tree, improving lookup performance.</p>
       <TreeDiagram />
     </div>;

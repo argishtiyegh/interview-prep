@@ -160,19 +160,20 @@ const linkedHashSetCode = [
 ].join('\n');
 
 const mapOrderCode = [
+  '// Integer key = employee ID; String value = employee name',
   'Map<Integer, String> hash = new HashMap<>();',
   'Map<Integer, String> linked = new LinkedHashMap<>();',
   'Map<Integer, String> sorted = new TreeMap<>();',
   '',
   'for (Map<Integer, String> map : List.of(hash, linked, sorted)) {',
-  '    map.put(30, "C");',
-  '    map.put(10, "A");',
-  '    map.put(20, "B");',
+  '    map.put(30, "Cara"); // employee ID 30 → Cara',
+  '    map.put(10, "Ana");  // employee ID 10 → Ana',
+  '    map.put(20, "Ben");  // employee ID 20 → Ben',
   '}',
   '',
   '// HashMap:       no guaranteed order',
-  '// LinkedHashMap: 30, 10, 20',
-  '// TreeMap:       10, 20, 30',
+  '// LinkedHashMap iteration: ID 30 → Cara, ID 10 → Ana, ID 20 → Ben',
+  '// TreeMap iteration:       ID 10 → Ana, ID 20 → Ben, ID 30 → Cara',
 ].join('\n');
 
 const lruCode = [
@@ -201,13 +202,17 @@ const rangeCode = [
 ].join('\n');
 
 const raceCode = [
+  'ConcurrentMap<Long, Product> productCache = new ConcurrentHashMap<>();',
+  'long productId = 42;',
+  '',
   '// Thread-safe calls, but the pair is not atomic',
-  'if (!cache.containsKey(key)) {',
-  '    cache.put(key, load(key));',
+  'if (!productCache.containsKey(productId)) {',
+  '    productCache.put(productId, loadProduct(productId));',
   '}',
   '',
   '// One atomic per-key operation',
-  'Value value = cache.computeIfAbsent(key, this::load);',
+  'Product product = productCache.computeIfAbsent(',
+  '        productId, this::loadProduct);',
 ].join('\n');
 
 const countingCode = [
@@ -245,20 +250,20 @@ const iteratorEditCode = [
 ].join('\n');
 
 const listFactoryCode = [
-  'String[] array = {"A", "B"};',
+  'String[] array = {"Ana", "Ben"};',
   'List<String> fixedView = Arrays.asList(array);',
-  'fixedView.set(0, "X"); // array[0] is now X',
-  '// fixedView.add("C");  // UnsupportedOperationException',
+  'fixedView.set(0, "Cara"); // array[0] is now "Cara"',
+  '// fixedView.add("David"); // UnsupportedOperationException',
   '',
-  'List<String> source = new ArrayList<>(List.of("A", "B"));',
+  'List<String> source = new ArrayList<>(List.of("Ana", "Ben"));',
   'List<String> view = Collections.unmodifiableList(source);',
   'List<String> copy = List.copyOf(source);',
   '',
-  'source.add("C");',
-  '// view sees C; copy does not',
+  'source.add("Cara");',
+  '// view now includes "Cara"; copy still contains only Ana and Ben',
   '',
-  'List<String> immutable = List.of("A", "B");',
-  '// immutable.set(0, "X"); // UnsupportedOperationException',
+  'List<String> immutable = List.of("Ana", "Ben");',
+  '// immutable.set(0, "Cara"); // UnsupportedOperationException',
 ].join('\n');
 
 function DecisionDiagram() {
@@ -290,11 +295,11 @@ function RaceDiagram() {
   return <Figure caption="Each map call is thread-safe, but another thread can act between the check and the update. Use one atomic map operation for the whole decision.">
     <div className="grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-2 text-sm">
       <strong className="text-slate-600">Time</strong><strong className="rounded-lg bg-cyan-50 p-2 text-center text-cyan-900">Thread A</strong><strong className="rounded-lg bg-amber-50 p-2 text-center text-amber-900">Thread B</strong>
-      <span className="font-mono text-slate-500">1</span><span className="rounded-lg border border-cyan-200 p-2">containsKey(k) → false</span><span />
-      <span className="font-mono text-slate-500">2</span><span /><span className="rounded-lg border border-amber-200 p-2">containsKey(k) → false</span>
-      <span className="font-mono text-slate-500">3</span><span className="rounded-lg border border-cyan-200 p-2">load(k)</span><span className="rounded-lg border border-amber-200 p-2">load(k)</span>
-      <span className="font-mono text-slate-500">4</span><span className="rounded-lg border border-cyan-200 p-2">put(k, valueA)</span><span />
-      <span className="font-mono text-slate-500">5</span><span /><span className="rounded-lg border border-amber-200 p-2">put(k, valueB)</span>
+      <span className="font-mono text-slate-500">1</span><span className="rounded-lg border border-cyan-200 p-2">containsKey(product ID 42) → false</span><span />
+      <span className="font-mono text-slate-500">2</span><span /><span className="rounded-lg border border-amber-200 p-2">containsKey(product ID 42) → false</span>
+      <span className="font-mono text-slate-500">3</span><span className="rounded-lg border border-cyan-200 p-2">load product 42</span><span className="rounded-lg border border-amber-200 p-2">load product 42 again</span>
+      <span className="font-mono text-slate-500">4</span><span className="rounded-lg border border-cyan-200 p-2">put(42, loaded product)</span><span />
+      <span className="font-mono text-slate-500">5</span><span /><span className="rounded-lg border border-amber-200 p-2">put(42, loaded product)</span>
     </div>
   </Figure>;
 }
@@ -318,35 +323,35 @@ function MapModelsDiagram() {
 }
 
 function LinkedHashMapDiagram() {
-  return <Figure caption="The same LinkedHashMap entries belong to the hash structure and the encounter-order chain. Values are stored in the entries alongside their keys.">
+  return <Figure caption="Example employee map. Every box is one map entry: the number is the employee ID key and the name is the stored value. The same entries belong to the hash structure and the encounter-order chain.">
     <div className="space-y-4 text-center text-sm">
       <div className="rounded-xl border border-cyan-300 bg-cyan-50 p-4 text-cyan-950">
         <b>Hash lookup view</b>
-        <div className="mt-2 font-mono">bucket[2] → [30=C] → [10=A]</div>
-        <div className="mt-1 font-mono">bucket[5] → [20=B]</div>
+        <div className="mt-2 font-mono">bucket[2] → [employee ID 30 | name Cara] → [employee ID 10 | name Ana]</div>
+        <div className="mt-1 font-mono">bucket[5] → [employee ID 20 | name Ben]</div>
       </div>
       <div className="text-2xl font-bold text-slate-400">same Entry objects</div>
       <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
         <b>Encounter-order view</b>
-        <div className="mt-2 font-mono">head → [30=C] ↔ [10=A] ↔ [20=B] → tail</div>
+        <div className="mt-2 font-mono">first inserted → [ID 30: Cara] ↔ [ID 10: Ana] ↔ [ID 20: Ben] → last inserted</div>
       </div>
     </div>
   </Figure>;
 }
 
 function TreeMapDiagram() {
-  return <Figure caption="Simplified red-black tree. Every Entry stores a key-value pair plus parent, left, right, and color information. Rebalancing keeps tree height logarithmic.">
+  return <Figure caption="Simplified employee map: each number is an employee ID key and each name is its value. TreeMap sorts the entries by the numeric ID keys. Every Entry also stores parent, left, right, and color information.">
     <div className="mx-auto max-w-lg text-center text-sm">
-      <div className="mx-auto w-28 rounded-full bg-slate-950 p-3 font-bold text-white">30 → C</div>
+      <div className="mx-auto w-28 rounded-full bg-slate-950 p-3 font-bold text-white">30 → Cara</div>
       <div className="mx-auto h-7 w-1/2 border-x-2 border-t-2 border-slate-400" />
       <div className="grid grid-cols-2 gap-16">
-        <div className="rounded-full border-2 border-red-700 bg-red-50 p-3 font-bold text-red-950">10 → A</div>
-        <div className="rounded-full border-2 border-red-700 bg-red-50 p-3 font-bold text-red-950">50 → E</div>
+        <div className="rounded-full border-2 border-red-700 bg-red-50 p-3 font-bold text-red-950">10 → Ana</div>
+        <div className="rounded-full border-2 border-red-700 bg-red-50 p-3 font-bold text-red-950">50 → Elena</div>
       </div>
       <div className="ml-[58%] h-6 w-[30%] border-x-2 border-t-2 border-slate-400" />
       <div className="ml-auto grid w-[42%] grid-cols-2 gap-3">
-        <div className="rounded-full bg-slate-950 p-3 font-bold text-white">40 → D</div>
-        <div className="rounded-full bg-slate-950 p-3 font-bold text-white">70 → G</div>
+        <div className="rounded-full bg-slate-950 p-3 font-bold text-white">40 → David</div>
+        <div className="rounded-full bg-slate-950 p-3 font-bold text-white">70 → Grace</div>
       </div>
     </div>
   </Figure>;
@@ -377,13 +382,15 @@ function ArrayListDiagram() {
 }
 
 function LinkedListDiagram() {
-  return <Figure caption="Current OpenJDK model: the list stores first and last references; every Node stores the element plus links to its previous and next Nodes.">
-    <div className="mb-4 flex justify-between rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700"><span>first → Node A</span><span>Node C ← last</span></div>
+  const orderIds = ['Order 101', 'Order 205', 'Order 330'];
+
+  return <Figure caption="Example list of order IDs. Current OpenJDK stores first and last references; every Node stores one element plus links to its previous and next Nodes.">
+    <div className="mb-4 flex justify-between rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700"><span>first → Order 101 Node</span><span>Order 330 Node ← last</span></div>
     <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
-      {['A', 'B', 'C'].map((value, index) => <div key={value} className="contents">
+      {orderIds.map((orderId, index) => <div key={orderId} className="contents">
         <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-slate-300 bg-white text-center text-xs">
           <span className="bg-slate-100 p-3 text-slate-500">{index === 0 ? 'null' : 'prev'}</span>
-          <strong className="p-3 text-slate-950">{value}</strong>
+          <strong className="p-3 text-slate-950">{orderId}</strong>
           <span className="bg-slate-100 p-3 text-slate-500">{index === 2 ? 'null' : 'next'}</span>
         </div>
         {index < 2 && <span className="hidden text-center font-bold text-cyan-700 sm:block">⇄</span>}
@@ -394,29 +401,29 @@ function LinkedListDiagram() {
 
 function ArrayDequeDiagram() {
   const cells = [
-    ['0', 'D'], ['1', 'E'], ['2', 'null'], ['3', 'null'],
-    ['4', 'null'], ['5', 'A'], ['6', 'B'], ['7', 'C'],
+    ['0', 'Job 4'], ['1', 'Job 5'], ['2', 'null'], ['3', 'null'],
+    ['4', 'null'], ['5', 'Job 1'], ['6', 'Job 2'], ['7', 'Job 3'],
   ];
-  return <Figure caption="Simplified circular-array model: logical order starts at head, wraps at the array end, and stops before tail. No elements move merely because an index wraps.">
+  return <Figure caption="Example queue of five jobs in a simplified circular array. Logical order starts at head, wraps at the array end, and stops before tail. The numbers above the cells are physical array indexes.">
     <div className="grid grid-cols-4 gap-1 sm:grid-cols-8">
       {cells.map(([index, value]) => <div key={index} className={`rounded-lg border p-2 text-center ${value === 'null' ? 'border-dashed border-slate-300 bg-slate-50 text-slate-400' : 'border-cyan-300 bg-cyan-50 text-slate-950'}`}>
         <small className="block font-mono text-[10px] text-slate-500">{index}</small><strong className="text-xs">{value}</strong>
       </div>)}
     </div>
     <div className="mt-3 grid grid-cols-2 gap-2 text-center text-sm font-bold">
-      <span className="rounded-lg bg-cyan-100 p-2 text-cyan-900">head = 5 → A</span>
+      <span className="rounded-lg bg-cyan-100 p-2 text-cyan-900">head = index 5 → Job 1</span>
       <span className="rounded-lg bg-amber-100 p-2 text-amber-900">tail = 2 → next free slot</span>
     </div>
-    <p className="mt-3 text-center text-sm text-slate-600">Logical order: A → B → C → D → E</p>
+    <p className="mt-3 text-center text-sm text-slate-600">Queue order: Job 1 → Job 2 → Job 3 → Job 4 → Job 5</p>
   </Figure>;
 }
 
 function TreeSetInsertDiagram() {
   return <Figure caption="Simplified insertion path: TreeSet delegates to a TreeMap. A zero comparison finds an existing tree key, so no new Node is created and add() returns false.">
     <div className="grid gap-2 text-center text-sm sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
-      <div className="rounded-xl border border-cyan-300 bg-cyan-50 p-4"><strong className="block text-slate-950">add(second)</strong><span className="text-slate-600">id 7, different email</span></div>
+      <div className="rounded-xl border border-cyan-300 bg-cyan-50 p-4"><strong className="block text-slate-950">add Sam</strong><span className="text-slate-600">id 7 · sam@example.com</span></div>
       <ArrowRight className="mx-auto rotate-90 text-cyan-700 sm:rotate-0" />
-      <div className="rounded-xl border border-slate-300 bg-white p-4"><strong className="block text-slate-950">compare(first, second)</strong><span className="text-slate-600">ID-only result = 0</span></div>
+      <div className="rounded-xl border border-slate-300 bg-white p-4"><strong className="block text-slate-950">Compare with stored Ana</strong><span className="text-slate-600">both IDs are 7 → result 0</span></div>
       <ArrowRight className="mx-auto rotate-90 text-cyan-700 sm:rotate-0" />
       <div className="rounded-xl border border-amber-300 bg-amber-50 p-4"><strong className="block text-slate-950">Existing key found</strong><span className="text-slate-600">no new Node; add() = false</span></div>
     </div>
@@ -709,30 +716,30 @@ function SetInternalsPage() {
     </tbody></table></div>
     <h3>How HashSet iteration works</h3>
     <p><code>HashSet</code> iterates through its backing hash table rather than remembering when elements were added. It scans bucket indexes and, for every non-empty bucket, follows the Nodes stored in that bucket.</p>
-    <p>Suppose the program adds <code>C</code>, then <code>A</code>, then <code>B</code>. This reduced-capacity example uses illustrative bucket positions:</p>
-    <div className="formula text-left"><code>insertion sequence: C → A → B<br /><br />bucket[0] → empty<br />bucket[1] → B<br />bucket[2] → empty<br />bucket[3] → C → A&nbsp;&nbsp; (collision Nodes)</code></div>
+    <p>Suppose an employee-name set receives <code>Cara</code>, then <code>Ana</code>, then <code>Ben</code>. This reduced-capacity example uses illustrative bucket positions:</p>
+    <div className="formula text-left"><code>insertion sequence: Cara → Ana → Ben<br /><br />bucket[0] → empty<br />bucket[1] → Ben<br />bucket[2] → empty<br />bucket[3] → Cara → Ana&nbsp;&nbsp; (two colliding Nodes)</code></div>
     <ol className="step-list">
       <li><b>Scan bucket 0.</b><span>It is empty, so return nothing.</span></li>
-      <li><b>Scan bucket 1.</b><span>Return <code>B</code>, then follow that bucket&apos;s Node chain until it ends.</span></li>
+      <li><b>Scan bucket 1.</b><span>Return <code>Ben</code>, then follow that bucket&apos;s Node chain until it ends.</span></li>
       <li><b>Scan bucket 2.</b><span>It is empty, so continue.</span></li>
-      <li><b>Scan bucket 3.</b><span>Return <code>C</code>, then follow the next collision Node and return <code>A</code>.</span></li>
+      <li><b>Scan bucket 3.</b><span>Return <code>Cara</code>, then follow the next collision Node and return <code>Ana</code>.</span></li>
     </ol>
-    <div className="answer-card"><p>The illustrative iteration is therefore <code>B, C, A</code>, although insertion was <code>C, A, B</code>. This exact order is not guaranteed: hashes, capacity, collisions, resizing, and implementation details can change it.</p></div>
+    <div className="answer-card"><p>The illustrative iteration is therefore <code>Ben, Cara, Ana</code>, although insertion was <code>Cara, Ana, Ben</code>. This exact order is not guaranteed: hashes, capacity, collisions, resizing, and implementation details can change it.</p></div>
     <Callout tone="warning" title="Iteration cost"><code>HashSet</code> iteration can inspect empty buckets as well as stored entries, so its cost is proportional to backing capacity plus size. Choosing an unnecessarily large initial capacity can make iteration slower.</Callout>
     <h3>How LinkedHashSet preserves insertion order</h3>
     <Callout tone="tip" title="Does LinkedHashSet store elements only in a doubly linked list?"><strong>No.</strong> Like <code>HashSet</code>, it uses elements as keys in a hash-based backing structure and maps them to one shared placeholder value. Its entries additionally carry <code>before</code> and <code>after</code> links. One entry therefore belongs to two structures at the same time: a hash bucket for fast lookup and the doubly linked encounter-order chain for predictable iteration.</Callout>
     <p><code>LinkedHashSet</code> combines the membership behavior of a hash set with a doubly linked list running through every entry. The hash structure answers <em>“is this element present?”</em>; the linked chain answers <em>“which element comes next during iteration?”</em></p>
     <LinkedHashSetDiagram />
     <h3>How iteration works</h3>
-    <p>Suppose the program adds <code>C</code>, then <code>A</code>, then <code>B</code>. Their hashes may place the entries in unrelated buckets, but their encounter-order links still record the original sequence:</p>
-    <div className="formula text-left"><code>possible hash structure:<br />bucket[1] → B<br />bucket[3] → C<br />bucket[6] → A<br /><br />encounter-order chain:<br />eldest → C ↔ A ↔ B → youngest</code></div>
+    <p>Suppose the program adds employee names <code>Cara</code>, then <code>Ana</code>, then <code>Ben</code>. Their hashes may place the entries in unrelated buckets, but their encounter-order links still record the original sequence:</p>
+    <div className="formula text-left"><code>possible hash structure:<br />bucket[1] → Ben<br />bucket[3] → Cara<br />bucket[6] → Ana<br /><br />encounter-order chain:<br />first inserted → Cara ↔ Ana ↔ Ben → last inserted</code></div>
     <p>The iterator does not scan those buckets. It starts with the eldest entry, returns its element, and repeatedly follows the entry&apos;s <code>after</code> link:</p>
     <ol className="step-list">
-      <li><b>Return C.</b><span>Follow <code>C.after</code> to <code>A</code>.</span></li>
-      <li><b>Return A.</b><span>Follow <code>A.after</code> to <code>B</code>.</span></li>
-      <li><b>Return B.</b><span><code>B.after</code> reaches the end, so iteration stops.</span></li>
+      <li><b>Return Cara.</b><span>Follow <code>Cara.after</code> to <code>Ana</code>.</span></li>
+      <li><b>Return Ana.</b><span>Follow <code>Ana.after</code> to <code>Ben</code>.</span></li>
+      <li><b>Return Ben.</b><span><code>Ben.after</code> reaches the end, so iteration stops.</span></li>
     </ol>
-    <Callout title="Two structures, two jobs"><code>contains(&quot;A&quot;)</code> and <code>remove(&quot;A&quot;)</code> use hashing to find the entry. <code>iterator()</code>, <code>forEach()</code>, and an ordered sequential <code>stream()</code> observe the linked encounter order.</Callout>
+    <Callout title="Two structures, two jobs"><code>contains(&quot;Ana&quot;)</code> and <code>remove(&quot;Ana&quot;)</code> use hashing to find Ana&apos;s entry. <code>iterator()</code>, <code>forEach()</code>, and an ordered sequential <code>stream()</code> follow the insertion-order links.</Callout>
     <ol className="step-list">
       <li><b>Hash and find the bucket.</b><span><code>hashCode()</code> selects the bucket, then <code>equals()</code> checks matching entries.</span></li>
       <li><b>Reject an existing element.</b><span>If an equal entry exists, ordinary <code>add()</code> returns <code>false</code>. It creates no Node and does not change its position.</span></li>
