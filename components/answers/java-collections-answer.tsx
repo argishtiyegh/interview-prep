@@ -141,6 +141,24 @@ const setCode = [
   'scores.subSet(70, true, 90, true); // [72, 88]',
 ].join('\n');
 
+const linkedHashSetCode = [
+  'LinkedHashSet<String> names = new LinkedHashSet<>();',
+  'names.add("Ada");',
+  'names.add("Ben");',
+  'names.add("Cara");',
+  'names.add("Ben");  // duplicate: false; Ben does not move',
+  '',
+  'System.out.println(names); // [Ada, Ben, Cara]',
+  '',
+  'names.remove("Ben");',
+  'names.add("Ben");  // a new insertion at the end',
+  'System.out.println(names); // [Ada, Cara, Ben]',
+  '',
+  '// Java 21+: explicit encounter-order operations',
+  'names.addFirst("Ben");',
+  'System.out.println(names); // [Ben, Ada, Cara]',
+].join('\n');
+
 const mapOrderCode = [
   'Map<Integer, String> hash = new HashMap<>();',
   'Map<Integer, String> linked = new LinkedHashMap<>();',
@@ -398,6 +416,55 @@ function TreeSetInsertDiagram() {
   </Figure>;
 }
 
+function LinkedHashSetDiagram() {
+  return <Figure caption="Simplified current OpenJDK model. Each entry participates in the hash structure and in one doubly linked encounter-order chain; the keys are not stored twice.">
+    <svg className="h-auto w-full" viewBox="0 0 780 330" aria-labelledby="linked-hash-set-title linked-hash-set-description">
+      <title id="linked-hash-set-title">LinkedHashSet internal structure</title>
+      <desc id="linked-hash-set-description">Hash buckets point to entries for lookup. The same Ada, Ben, and Cara entries are connected in insertion order by before and after links.</desc>
+      <defs>
+        <marker id="lhs-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#0e7490" />
+        </marker>
+      </defs>
+
+      <text x="20" y="24" fill="#334155" fontSize="14" fontWeight="700">HASH BUCKETS</text>
+      {[0, 1, 2, 3].map((bucket, index) => <g key={bucket}>
+        <rect x="20" y={38 + index * 42} width="112" height="34" rx="7" fill="#f8fafc" stroke="#94a3b8" />
+        <text x="76" y={60 + index * 42} textAnchor="middle" fill="#334155" fontSize="13">bucket[{bucket}]</text>
+      </g>)}
+
+      <path d="M132 97 C210 97 340 112 409 132" fill="none" stroke="#0e7490" strokeWidth="2" markerEnd="url(#lhs-arrow)" />
+      <path d="M132 139 C152 139 160 139 174 139" fill="none" stroke="#0e7490" strokeWidth="2" markerEnd="url(#lhs-arrow)" />
+      <text x="145" y="122" fill="#475569" fontSize="12">bucket lookup</text>
+
+      {[
+        { x: 180, key: 'Ada' },
+        { x: 390, key: 'Ben' },
+        { x: 600, key: 'Cara' },
+      ].map(({ x, key }) => <g key={key}>
+        <rect x={x} y="110" width="140" height="76" rx="12" fill="#ecfeff" stroke="#0891b2" strokeWidth="2" />
+        <text x={x + 70} y="136" textAnchor="middle" fill="#475569" fontSize="12" fontWeight="700">ENTRY / NODE</text>
+        <text x={x + 70} y="165" textAnchor="middle" fill="#0f172a" fontSize="18" fontWeight="700">{key}</text>
+      </g>)}
+
+      <path d="M320 127 C430 53 539 53 600 127" fill="none" stroke="#0e7490" strokeWidth="2" strokeDasharray="6 5" markerEnd="url(#lhs-arrow)" />
+      <text x="460" y="60" textAnchor="middle" fill="#475569" fontSize="12">same-bucket collision link</text>
+
+      <text x="180" y="230" fill="#334155" fontSize="13" fontWeight="700">eldest</text>
+      <path d="M320 214 L390 214" stroke="#b45309" strokeWidth="3" markerStart="url(#lhs-arrow)" markerEnd="url(#lhs-arrow)" />
+      <path d="M530 214 L600 214" stroke="#b45309" strokeWidth="3" markerStart="url(#lhs-arrow)" markerEnd="url(#lhs-arrow)" />
+      <path d="M250 186 L250 214 L320 214" fill="none" stroke="#b45309" strokeWidth="2" />
+      <path d="M460 186 L460 214" fill="none" stroke="#b45309" strokeWidth="2" />
+      <path d="M670 186 L670 214 L600 214" fill="none" stroke="#b45309" strokeWidth="2" />
+      <text x="740" y="230" textAnchor="end" fill="#334155" fontSize="13" fontWeight="700">youngest</text>
+      <text x="460" y="262" textAnchor="middle" fill="#92400e" fontSize="14" fontWeight="700">before / after links define iteration: Ada ↔ Ben ↔ Cara</text>
+
+      <rect x="180" y="282" width="560" height="34" rx="8" fill="#f1f5f9" />
+      <text x="460" y="304" textAnchor="middle" fill="#334155" fontSize="13">contains() follows bucket links · iteration follows encounter-order links</text>
+    </svg>
+  </Figure>;
+}
+
 function RoadmapPage() {
   return <div className="article-copy">
     <p>These questions test whether you can connect an API choice to correctness, performance, and production behavior.</p>
@@ -628,11 +695,31 @@ function SetInternalsPage() {
   return <div className="article-copy">
     <p>Set implementations share the no-duplicates abstraction but enforce it through different backing structures.</p>
     <div className="table-wrap"><table><thead><tr><th>Set</th><th>Internal model</th><th>What defines a duplicate</th><th>Order</th></tr></thead><tbody>
-      <tr><td><b>HashSet</b></td><td>HashMap keys mapped to one placeholder</td><td>Hash then <code>equals()</code></td><td>Unspecified</td></tr>
-      <tr><td><b>LinkedHashSet</b></td><td>Hash table plus linked encounter order</td><td>Hash then <code>equals()</code></td><td>Insertion order</td></tr>
+      <tr><td><b>HashSet</b></td><td>HashMap-backed entries: elements are keys mapped to one placeholder</td><td>Hash then <code>equals()</code></td><td>Unspecified</td></tr>
+      <tr><td><b>LinkedHashSet</b></td><td>The same hash-based idea, with <code>before</code>/<code>after</code> links on entries</td><td>Hash then <code>equals()</code></td><td>Insertion order</td></tr>
       <tr><td><b>TreeSet</b></td><td>Navigable tree map keys</td><td>Comparison result zero</td><td>Sorted</td></tr>
       <tr><td><b>EnumSet</b></td><td>Bit vector keyed by enum ordinal</td><td>Same enum constant</td><td>Enum declaration order</td></tr>
     </tbody></table></div>
+    <h3>How LinkedHashSet preserves insertion order</h3>
+    <Callout tone="tip" title="Does LinkedHashSet store elements only in a doubly linked list?"><strong>No.</strong> Like <code>HashSet</code>, it uses elements as keys in a hash-based backing structure and maps them to one shared placeholder value. Its entries additionally carry <code>before</code> and <code>after</code> links. One entry therefore belongs to two structures at the same time: a hash bucket for fast lookup and the doubly linked encounter-order chain for predictable iteration.</Callout>
+    <p><code>LinkedHashSet</code> combines the membership behavior of a hash set with a doubly linked list running through every entry. The hash structure answers <em>“is this element present?”</em>; the linked chain answers <em>“which element comes next during iteration?”</em></p>
+    <LinkedHashSetDiagram />
+    <ol className="step-list">
+      <li><b>Hash and find the bucket.</b><span><code>hashCode()</code> selects the bucket, then <code>equals()</code> checks matching entries.</span></li>
+      <li><b>Reject an existing element.</b><span>If an equal entry exists, ordinary <code>add()</code> returns <code>false</code>. It creates no Node and does not change its position.</span></li>
+      <li><b>Link a new entry at the end.</b><span>If it is new, the entry joins the hash structure and its <code>before</code>/<code>after</code> links connect it after the youngest entry.</span></li>
+      <li><b>Iterate through the linked chain.</b><span>The iterator starts with the eldest entry and follows encounter-order links, independent of bucket positions.</span></li>
+    </ol>
+    <CodeBlock code={linkedHashSetCode} />
+    <Callout title="Why are the extra links added?"><code>HashSet</code> can place elements wherever their hashes lead, so bucket layout and resizing make iteration order unspecified. <code>LinkedHashSet</code> adds the order links specifically to preserve a stable encounter order while keeping average O(1) hash lookup. The tradeoff is extra memory per entry and a little more work when entries are inserted or removed.</Callout>
+    <div className="table-wrap"><table><thead><tr><th>Operation</th><th>Effect on encounter order</th></tr></thead><tbody>
+      <tr><td><code>add(newElement)</code></td><td>Places the new entry at the end.</td></tr>
+      <tr><td><code>add(existingElement)</code></td><td>Keeps the existing position; returns <code>false</code>.</td></tr>
+      <tr><td><code>remove(e)</code>, then <code>add(e)</code></td><td>Creates a new insertion at the end.</td></tr>
+      <tr><td><code>contains(e)</code></td><td>Does not move the entry. LinkedHashSet has no access-order mode.</td></tr>
+      <tr><td><code>addFirst(e)</code> / <code>addLast(e)</code></td><td>Since Java 21, explicitly adds or relocates an element at that end.</td></tr>
+    </tbody></table></div>
+    <Callout title="Performance tradeoff">Basic <code>add</code>, <code>contains</code>, and <code>remove</code> remain O(1) on average with well-distributed hashes. Maintaining two extra order links costs memory and a little update work. Iteration is O(size), regardless of unused hash-table capacity.</Callout>
     <h3>EnumSet as bits</h3>
     <p>For enum values, a bit can represent whether each constant is present. This is compact and makes basic and bulk operations very fast.</p>
     <div className="formula text-left"><code>enum Permission: READ WRITE DELETE ADMIN<br />stored bits:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp;&nbsp;&nbsp; 1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1<br />set contains:&nbsp;&nbsp; READ, WRITE, ADMIN</code></div>
@@ -705,6 +792,17 @@ function SetsPage() {
       <tr><td>Best use</td><td>Fast membership and deduplication</td><td>Sorted uniqueness, ranges, floor/ceiling</td></tr>
     </tbody></table></div>
     <CodeBlock code={setCode} />
+    <h3>What sorted uniqueness, ranges, and neighbors mean</h3>
+    <p><strong>Sorted uniqueness</strong> means the set keeps at most one element for each comparison result of zero and continuously maintains the remaining elements in sorted order. With scores <code>[55, 72, 88, 91]</code>, iteration always follows that numeric order.</p>
+    <p>A <strong>range</strong> is a live view of one ordered portion of the set. For example, <code>subSet(70, true, 90, true)</code> selects values from 70 through 90, including both boundaries, and returns <code>[72, 88]</code>. <code>headSet()</code> selects values below a boundary; <code>tailSet()</code> selects values above one.</p>
+    <p><strong>Neighbors</strong> are the closest stored elements around a requested value, even when that exact value is absent:</p>
+    <div className="table-wrap"><table><thead><tr><th>Query for 80</th><th>Meaning</th><th>Result</th></tr></thead><tbody>
+      <tr><td><code>floor(80)</code></td><td>Greatest value ≤ 80</td><td><code>72</code></td></tr>
+      <tr><td><code>ceiling(80)</code></td><td>Smallest value ≥ 80</td><td><code>88</code></td></tr>
+      <tr><td><code>lower(80)</code></td><td>Greatest value strictly &lt; 80</td><td><code>72</code></td></tr>
+      <tr><td><code>higher(80)</code></td><td>Smallest value strictly &gt; 80</td><td><code>88</code></td></tr>
+    </tbody></table></div>
+    <Callout title="Why this matters">These operations are useful for time windows, price bands, ranking thresholds, scheduling, and finding the closest available value. A HashSet cannot answer them directly because it does not maintain order.</Callout>
     <h3>How TreeSet prevents duplicates internally</h3>
     <p><code>TreeSet</code> is backed by a navigable tree map. The set element is stored as a map key with one shared placeholder value. During <code>add(element)</code>, the tree compares the new element while walking from the root.</p>
     <TreeSetInsertDiagram />
@@ -818,6 +916,7 @@ function RecapPage() {
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/LinkedList.html" target="_blank" rel="noreferrer">LinkedList API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/ArrayDeque.html" target="_blank" rel="noreferrer">ArrayDeque API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/TreeSet.html" target="_blank" rel="noreferrer">TreeSet API <ArrowRight /></a>
+      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/LinkedHashSet.html" target="_blank" rel="noreferrer">LinkedHashSet API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/PriorityQueue.html" target="_blank" rel="noreferrer">PriorityQueue API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/EnumSet.html" target="_blank" rel="noreferrer">EnumSet API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/LinkedHashMap.html" target="_blank" rel="noreferrer">LinkedHashMap API <ArrowRight /></a>
