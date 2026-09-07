@@ -33,7 +33,7 @@ export const questions: QuestionEntry[] = [{
   category: 'Collections',
   summary: 'Equality contracts, collection selection, map tradeoffs, coding questions, and concurrent updates.',
   updated: 'September 2026',
-  readingTime: '24 min read',
+  readingTime: '40 min read',
   pages: javaCollectionsPages,
 }];
 

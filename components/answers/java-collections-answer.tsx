@@ -91,10 +91,15 @@ const comparatorCode = [
   'Comparator<User> byId = Comparator.comparingLong(User::id);',
   'Set<User> users = new TreeSet<>(byId);',
   '',
-  'users.add(new User(7, "ana@example.com"));',
-  'users.add(new User(7, "sam@example.com"));',
+  'User first = new User(7, "ana@example.com");',
+  'User second = new User(7, "sam@example.com");',
   '',
-  'System.out.println(users.size());',
+  'System.out.println(first.equals(second));       // false',
+  'System.out.println(byId.compare(first, second)); // 0',
+  '',
+  'users.add(first);',
+  'users.add(second);',
+  'System.out.println(users.size());                // 1',
 ].join('\n');
 
 const dequeCode = [
@@ -199,6 +204,87 @@ const countingCode = [
   '        .increment();',
 ].join('\n');
 
+const listStorageCode = [
+  'List<String> names = new ArrayList<>();',
+  'names.add("Ana");',
+  'names.add("Sam");',
+  'names.add(1, "Lee"); // shifts Sam one position right',
+  'names.remove(0);     // shifts later values left',
+  '',
+  '// Logical result: [Lee, Sam]',
+  '// size is 2; internal capacity can be larger',
+].join('\n');
+
+const iteratorEditCode = [
+  'ListIterator<Task> cursor = tasks.listIterator();',
+  '',
+  'while (cursor.hasNext()) {',
+  '    Task task = cursor.next();',
+  '    if (task.isComplete()) {',
+  '        cursor.remove(); // O(1) relink after traversal reached it',
+  '    }',
+  '}',
+].join('\n');
+
+const listFactoryCode = [
+  'String[] array = {"A", "B"};',
+  'List<String> fixedView = Arrays.asList(array);',
+  'fixedView.set(0, "X"); // array[0] is now X',
+  '// fixedView.add("C");  // UnsupportedOperationException',
+  '',
+  'List<String> source = new ArrayList<>(List.of("A", "B"));',
+  'List<String> view = Collections.unmodifiableList(source);',
+  'List<String> copy = List.copyOf(source);',
+  '',
+  'source.add("C");',
+  '// view sees C; copy does not',
+  '',
+  'List<String> immutable = List.of("A", "B");',
+  '// immutable.set(0, "X"); // UnsupportedOperationException',
+].join('\n');
+
+const priorityQueueCode = [
+  'PriorityQueue<Integer> jobs = new PriorityQueue<>();',
+  'jobs.offer(40);',
+  'jobs.offer(10);',
+  'jobs.offer(30);',
+  'jobs.offer(20);',
+  '',
+  'jobs.peek(); // 10',
+  'jobs.poll(); // removes 10',
+  '',
+  '// Iteration is NOT guaranteed to be: 20, 30, 40',
+  'while (!jobs.isEmpty()) {',
+  '    process(jobs.poll()); // removal order is sorted by priority',
+  '}',
+].join('\n');
+
+const blockingQueueCode = [
+  'BlockingQueue<Job> jobs = new ArrayBlockingQueue<>(100);',
+  '',
+  '// Producer waits when the bounded queue is full',
+  'jobs.put(job);',
+  '',
+  '// Consumer waits when the queue is empty',
+  'Job next = jobs.take();',
+  '',
+  '// Timed alternative',
+  'boolean accepted = jobs.offer(job, 500, TimeUnit.MILLISECONDS);',
+].join('\n');
+
+const copyOnWriteCode = [
+  'CopyOnWriteArrayList<Listener> listeners =',
+  '        new CopyOnWriteArrayList<>();',
+  '',
+  'for (Listener listener : listeners) {',
+  '    listener.onEvent(event);',
+  '    // This iterator sees the snapshot captured when it was created.',
+  '}',
+  '',
+  '// Every mutation copies the backing array.',
+  'listeners.add(newListener);',
+].join('\n');
+
 function DecisionDiagram() {
   const choices = [
     ['Indexed sequence', 'ArrayList'],
@@ -237,6 +323,81 @@ function RaceDiagram() {
   </Figure>;
 }
 
+function ArrayListDiagram() {
+  const cells = ['Ana', 'Lee', 'Sam', 'null', 'null', 'null', 'null', 'null'];
+  return <Figure caption="Simplified current OpenJDK model: size counts stored elements, while capacity is the length of the backing Object array. Unused slots are null.">
+    <div className="mb-3 flex justify-between text-xs font-bold uppercase tracking-[.1em] text-slate-600"><span>size = 3</span><span>capacity = 8</span></div>
+    <div className="grid grid-cols-4 gap-1 sm:grid-cols-8">
+      {cells.map((value, index) => <div key={index} className={`rounded-lg border p-2 text-center ${value === 'null' ? 'border-dashed border-slate-300 bg-slate-50 text-slate-400' : 'border-cyan-300 bg-cyan-50 text-slate-950'}`}>
+        <small className="block font-mono text-[10px] text-slate-500">{index}</small><strong className="text-xs">{value}</strong>
+      </div>)}
+    </div>
+    <div className="mt-4 rounded-lg bg-slate-100 p-3 text-center text-sm text-slate-700">When full: allocate a larger array → copy references → append the new reference</div>
+  </Figure>;
+}
+
+function LinkedListDiagram() {
+  return <Figure caption="Current OpenJDK model: the list stores first and last references; every Node stores the element plus links to its previous and next Nodes.">
+    <div className="mb-4 flex justify-between rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700"><span>first → Node A</span><span>Node C ← last</span></div>
+    <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
+      {['A', 'B', 'C'].map((value, index) => <div key={value} className="contents">
+        <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-slate-300 bg-white text-center text-xs">
+          <span className="bg-slate-100 p-3 text-slate-500">{index === 0 ? 'null' : 'prev'}</span>
+          <strong className="p-3 text-slate-950">{value}</strong>
+          <span className="bg-slate-100 p-3 text-slate-500">{index === 2 ? 'null' : 'next'}</span>
+        </div>
+        {index < 2 && <span className="hidden text-center font-bold text-cyan-700 sm:block">⇄</span>}
+      </div>)}
+    </div>
+  </Figure>;
+}
+
+function ArrayDequeDiagram() {
+  const cells = [
+    ['0', 'D'], ['1', 'E'], ['2', 'null'], ['3', 'null'],
+    ['4', 'null'], ['5', 'A'], ['6', 'B'], ['7', 'C'],
+  ];
+  return <Figure caption="Simplified circular-array model: logical order starts at head, wraps at the array end, and stops before tail. No elements move merely because an index wraps.">
+    <div className="grid grid-cols-4 gap-1 sm:grid-cols-8">
+      {cells.map(([index, value]) => <div key={index} className={`rounded-lg border p-2 text-center ${value === 'null' ? 'border-dashed border-slate-300 bg-slate-50 text-slate-400' : 'border-cyan-300 bg-cyan-50 text-slate-950'}`}>
+        <small className="block font-mono text-[10px] text-slate-500">{index}</small><strong className="text-xs">{value}</strong>
+      </div>)}
+    </div>
+    <div className="mt-3 grid grid-cols-2 gap-2 text-center text-sm font-bold">
+      <span className="rounded-lg bg-cyan-100 p-2 text-cyan-900">head = 5 → A</span>
+      <span className="rounded-lg bg-amber-100 p-2 text-amber-900">tail = 2 → next free slot</span>
+    </div>
+    <p className="mt-3 text-center text-sm text-slate-600">Logical order: A → B → C → D → E</p>
+  </Figure>;
+}
+
+function PriorityQueueDiagram() {
+  return <Figure caption="Simplified min-heap: only the smallest element is guaranteed at the root. The backing array is heap-ordered, not fully sorted.">
+    <div className="mx-auto max-w-md text-center">
+      <div className="mx-auto w-16 rounded-full border border-cyan-400 bg-cyan-50 p-3 font-bold text-slate-950">10</div>
+      <div className="mx-auto h-5 w-1/2 border-x border-t border-slate-400" />
+      <div className="grid grid-cols-2 gap-16">
+        <div className="rounded-full border border-slate-300 bg-white p-3 font-bold">20</div>
+        <div className="rounded-full border border-slate-300 bg-white p-3 font-bold">30</div>
+      </div>
+      <div className="ml-[8%] mt-2 w-[34%] rounded-full border border-slate-300 bg-white p-3 font-bold">40</div>
+    </div>
+    <div className="mt-5 rounded-lg bg-slate-100 p-3 text-center font-mono text-sm text-slate-700">backing array: [10, 20, 30, 40]</div>
+  </Figure>;
+}
+
+function TreeSetInsertDiagram() {
+  return <Figure caption="Simplified insertion path: TreeSet delegates to a TreeMap. A zero comparison finds an existing tree key, so no new Node is created and add() returns false.">
+    <div className="grid gap-2 text-center text-sm sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
+      <div className="rounded-xl border border-cyan-300 bg-cyan-50 p-4"><strong className="block text-slate-950">add(second)</strong><span className="text-slate-600">id 7, different email</span></div>
+      <ArrowRight className="mx-auto rotate-90 text-cyan-700 sm:rotate-0" />
+      <div className="rounded-xl border border-slate-300 bg-white p-4"><strong className="block text-slate-950">compare(first, second)</strong><span className="text-slate-600">ID-only result = 0</span></div>
+      <ArrowRight className="mx-auto rotate-90 text-cyan-700 sm:rotate-0" />
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4"><strong className="block text-slate-950">Existing key found</strong><span className="text-slate-600">no new Node; add() = false</span></div>
+    </div>
+  </Figure>;
+}
+
 function RoadmapPage() {
   return <div className="article-copy">
     <p>These questions test whether you can connect an API choice to correctness, performance, and production behavior.</p>
@@ -265,6 +426,7 @@ function SpokenAnswersPage() {
     <div className="answer-card"><p><code>equals()</code> must be reflexive, symmetric, transitive, and consistent, and a non-null object must not equal <code>null</code>. Equal objects must have equal hash codes, while unequal objects may collide. If I override value-based equality, I override both methods using the same stable fields.</p></div>
     <h3>Lists, sets, and deques</h3>
     <div className="answer-card"><p>I use <code>ArrayList</code> as the normal list, <code>HashSet</code> for unique membership, <code>TreeSet</code> for sorted uniqueness and range queries, and <code>ArrayDeque</code> for a stack or queue. I choose <code>LinkedList</code> only when its linked representation matches a demonstrated access pattern.</p></div>
+    <p><strong>Internal-storage headline:</strong> <code>ArrayList</code> uses a resizable array, <code>LinkedList</code> uses doubly linked Nodes, <code>ArrayDeque</code> uses a circular resizable array, <code>HashSet</code> uses hash-map keys, <code>TreeSet</code> uses sorted tree keys, and <code>PriorityQueue</code> uses an array-backed heap.</p>
     <h3>Map implementations</h3>
     <div className="answer-card"><p><code>HashMap</code> is the general-purpose unordered map. <code>LinkedHashMap</code> adds predictable encounter or access order. <code>TreeMap</code> keeps keys sorted and supports navigation. <code>ConcurrentHashMap</code> supports concurrent access and atomic per-key updates without allowing <code>null</code>.</p></div>
   </div>;
@@ -329,7 +491,7 @@ function EqualityExercisesPage() {
     <div className="faq-list"><details><summary>Show answer</summary><p>Equal tickets normally receive different identity-based hashes, so lookup can search a different bucket and never call <code>equals()</code>. Override <code>hashCode()</code> using <code>number</code>.</p></details></div>
     <h3>Why does the sorted set keep one value?</h3>
     <CodeBlock code={comparatorCode} />
-    <div className="faq-list"><details><summary>Show answer</summary><p>The output is <code>1</code>. For <code>TreeSet</code>, comparison result zero means the same set position. The comparator ignores email, although record equality includes it. The ordering is inconsistent with equality.</p></details></div>
+    <div className="faq-list"><details><summary>Show answer</summary><p><strong>For membership inside this <code>TreeSet</code>, the comparator wins.</strong> The set decides that an element already exists when <code>compare(first, second) == 0</code>; it does not use <code>equals()</code> for that decision. Both users have <code>id = 7</code>, so the ID-only comparator returns zero and the second user is rejected. Their record-generated <code>equals()</code> still returns false because the emails differ. The comparator does not change equality elsewhere—it controls uniqueness only inside this sorted set. Keep a set comparator consistent with <code>equals()</code> to avoid this surprising behavior.</p></details></div>
   </div>;
 }
 
@@ -345,6 +507,170 @@ function ChooseCollectionPage() {
       <tr><td><b>O(1) amortized</b></td><td>Most calls are cheap; an occasional resize is expensive, but its cost averages out across many calls.</td></tr>
     </tbody></table></div>
     <Callout title="Big-O is not a stopwatch">Allocation, memory layout, cache locality, hash distribution, and collection size also affect real performance.</Callout>
+  </div>;
+}
+
+function FrameworkPage() {
+  return <div className="article-copy">
+    <p>The framework separates <strong>behavioral interfaces</strong> from <strong>storage implementations</strong>. Program to the narrowest interface that expresses the requirement.</p>
+    <Figure caption="Simplified Java Collections Framework hierarchy. Map belongs to the framework but is not a subtype of Collection because it stores key-value mappings rather than individual elements.">
+      <div className="grid gap-3 text-center text-sm">
+        <div className="mx-auto rounded-xl border border-slate-300 bg-slate-50 px-6 py-3 font-bold text-slate-950">Iterable</div>
+        <div className="text-xl font-bold text-cyan-700">↓</div>
+        <div className="grid gap-3 sm:grid-cols-[3fr_1fr]">
+          <div className="rounded-xl border-2 border-cyan-300 bg-cyan-50 p-3 font-bold text-cyan-950">Collection</div>
+          <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-3 font-bold text-amber-950">Map — separate hierarchy</div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {['List', 'Set', 'Queue', 'Deque extends Queue'].map(item => <div key={item} className="rounded-xl border border-slate-300 bg-white p-3 font-bold text-slate-800">{item}</div>)}
+        </div>
+      </div>
+    </Figure>
+    <ul>
+      <li><b>List:</b> ordered sequence, duplicates allowed, positional access.</li>
+      <li><b>Set:</b> no duplicate elements according to its equality or ordering rule.</li>
+      <li><b>Queue:</b> elements waiting for processing under a defined removal policy.</li>
+      <li><b>Deque:</b> insertion, examination, and removal at both ends.</li>
+      <li><b>Map:</b> unique keys associated with values.</li>
+    </ul>
+    <Callout title="Declaration versus construction"><code>List&lt;Order&gt; orders = new ArrayList&lt;&gt;();</code> exposes list behavior to the caller while keeping the implementation replaceable.</Callout>
+  </div>;
+}
+
+function ArrayListInternalsPage() {
+  return <div className="article-copy">
+    <p><code>ArrayList</code> stores element references in a resizable <code>Object[]</code>. It separately tracks the logical <code>size</code>; the array length is the <code>capacity</code>.</p>
+    <ArrayListDiagram />
+    <h3>What each operation does</h3>
+    <ul>
+      <li><code>get(i)</code> reads array slot <code>i</code>, so indexed access is O(1).</li>
+      <li><code>set(i, value)</code> replaces one reference without changing size.</li>
+      <li><code>add(value)</code> writes at <code>elementData[size]</code> when capacity remains.</li>
+      <li>When full, append allocates a larger array and copies references. This occasional O(n) copy makes append O(1) amortized.</li>
+      <li>Insertion or removal in the middle shifts the later references and is O(n).</li>
+    </ul>
+    <CodeBlock code={listStorageCode} />
+    <Callout tone="tip" title="Size is not capacity"><code>size()</code> reports elements available to callers. Capacity is spare internal storage and is not part of the List API contract.</Callout>
+  </div>;
+}
+
+function ArrayListDetailsPage() {
+  return <div className="article-copy">
+    <h3>Growth and memory</h3>
+    <p>The Java API guarantees automatic growth and amortized constant-time append but does not specify an exact growth formula. Current OpenJDK code prefers growth of roughly half the old capacity for a non-empty list; treat that number as an implementation detail.</p>
+    <p>The array stores references, not inline objects. A <code>List&lt;Integer&gt;</code> therefore holds references to boxed <code>Integer</code> objects rather than primitive <code>int</code> values.</p>
+    <h3>Capacity tools</h3>
+    <ul>
+      <li><code>ensureCapacity(expectedSize)</code> can reduce repeated growth when a large size is known.</li>
+      <li><code>trimToSize()</code> can release unused array slots, but calling it repeatedly creates unnecessary copying.</li>
+      <li>Clearing or removing elements releases their array references so those objects can become eligible for garbage collection.</li>
+    </ul>
+    <h3>Interview implications</h3>
+    <div className="table-wrap"><table><thead><tr><th>Question</th><th>Strong answer</th></tr></thead><tbody>
+      <tr><td>Why is append amortized O(1)?</td><td>Most appends write one slot; occasional growth copies all existing references.</td></tr>
+      <tr><td>Why is middle removal O(n)?</td><td>Later references must shift left to close the gap.</td></tr>
+      <tr><td>Why can it beat LinkedList iteration?</td><td>References are stored contiguously with fewer objects and better cache locality.</td></tr>
+    </tbody></table></div>
+  </div>;
+}
+
+function LinkedListInternalsPage() {
+  return <div className="article-copy">
+    <p>Current OpenJDK <code>LinkedList</code> keeps <code>first</code>, <code>last</code>, and <code>size</code>. Every Node contains the element reference plus <code>prev</code> and <code>next</code> references.</p>
+    <LinkedListDiagram />
+    <h3>Traversal before modification</h3>
+    <p>To reach index <code>i</code>, the implementation starts from the nearer end and follows links. That is still O(n). Once a Node is known, insertion or removal rewires neighboring links in O(1).</p>
+    <CodeBlock code={iteratorEditCode} />
+    <h3>Tradeoffs</h3>
+    <ul>
+      <li>O(1) operations at the first and last Nodes.</li>
+      <li>O(n) indexed access and value search.</li>
+      <li>A separate Node allocation and two link references per element.</li>
+      <li>Poorer cache locality because Nodes may be scattered in memory.</li>
+    </ul>
+    <Callout tone="warning" title="Do not repeat get(i)">An indexed loop repeatedly traverses the list and can turn one pass into O(n²). Iterate through Nodes once instead.</Callout>
+  </div>;
+}
+
+function ArrayDequeInternalsPage() {
+  return <div className="article-copy">
+    <p><code>ArrayDeque</code> stores references in a resizable array and tracks the logical front and next tail position. Current OpenJDK uses circular indexing so either end can cross the physical array boundary.</p>
+    <ArrayDequeDiagram />
+    <ul>
+      <li><code>addFirst()</code> moves <code>head</code> backward and writes the element.</li>
+      <li><code>addLast()</code> writes at <code>tail</code> and moves <code>tail</code> forward.</li>
+      <li><code>pollFirst()</code> clears the head slot and advances <code>head</code>.</li>
+      <li><code>pollLast()</code> moves <code>tail</code> backward and clears that slot.</li>
+      <li>Growth occasionally allocates and copies, so end operations are amortized O(1).</li>
+      <li>Removing a value from the middle requires searching and shifting part of the array.</li>
+    </ul>
+    <Callout title="Why null is forbidden">Methods such as <code>peek()</code> and <code>poll()</code> use <code>null</code> to represent an empty deque. Prohibiting null elements keeps that result unambiguous.</Callout>
+  </div>;
+}
+
+function ListVariantsPage() {
+  return <div className="article-copy">
+    <h3>Views, fixed size, and unmodifiable lists</h3>
+    <CodeBlock code={listFactoryCode} />
+    <div className="table-wrap"><table><thead><tr><th>Creation</th><th>What it means</th></tr></thead><tbody>
+      <tr><td><code>Arrays.asList(array)</code></td><td>Fixed-size List view backed by the array. <code>set()</code> works; size-changing methods do not.</td></tr>
+      <tr><td><code>Collections.unmodifiableList(source)</code></td><td>Read-only wrapper view. Mutations made through the original source remain visible.</td></tr>
+      <tr><td><code>List.copyOf(source)</code></td><td>Unmodifiable shallow copy of the current element references.</td></tr>
+      <tr><td><code>List.of(...)</code></td><td>Unmodifiable list that rejects null elements.</td></tr>
+    </tbody></table></div>
+    <Callout tone="warning" title="Unmodifiable is not deeply immutable">An element inside an unmodifiable list can still change unless the element itself is immutable.</Callout>
+    <h3>Legacy choices</h3>
+    <p><code>Vector</code> is a synchronized legacy resizable array. <code>Stack</code> extends it and exposes an old stack API. For new code, prefer <code>ArrayList</code> for an ordinary list, explicit synchronization or a concurrent collection when needed, and <code>ArrayDeque</code> for a stack.</p>
+  </div>;
+}
+
+function SetInternalsPage() {
+  return <div className="article-copy">
+    <p>Set implementations share the no-duplicates abstraction but enforce it through different backing structures.</p>
+    <div className="table-wrap"><table><thead><tr><th>Set</th><th>Internal model</th><th>What defines a duplicate</th><th>Order</th></tr></thead><tbody>
+      <tr><td><b>HashSet</b></td><td>HashMap keys mapped to one placeholder</td><td>Hash then <code>equals()</code></td><td>Unspecified</td></tr>
+      <tr><td><b>LinkedHashSet</b></td><td>Hash table plus linked encounter order</td><td>Hash then <code>equals()</code></td><td>Insertion order</td></tr>
+      <tr><td><b>TreeSet</b></td><td>Navigable tree map keys</td><td>Comparison result zero</td><td>Sorted</td></tr>
+      <tr><td><b>EnumSet</b></td><td>Bit vector keyed by enum ordinal</td><td>Same enum constant</td><td>Enum declaration order</td></tr>
+    </tbody></table></div>
+    <h3>EnumSet as bits</h3>
+    <p>For enum values, a bit can represent whether each constant is present. This is compact and makes basic and bulk operations very fast.</p>
+    <div className="formula text-left"><code>enum Permission: READ WRITE DELETE ADMIN<br />stored bits:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp;&nbsp;&nbsp; 1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1<br />set contains:&nbsp;&nbsp; READ, WRITE, ADMIN</code></div>
+    <Callout title="Choose the guarantee">Use <code>HashSet</code> for ordinary membership, <code>LinkedHashSet</code> for encounter order, <code>TreeSet</code> for sorting and ranges, and <code>EnumSet</code> for constants from one enum type.</Callout>
+  </div>;
+}
+
+function PriorityQueuePage() {
+  return <div className="article-copy">
+    <p><code>PriorityQueue</code> is a priority heap. Its head is the least element under natural ordering or the supplied comparator; it is not a FIFO queue.</p>
+    <PriorityQueueDiagram />
+    <CodeBlock code={priorityQueueCode} />
+    <div className="table-wrap"><table><thead><tr><th>Operation</th><th>Cost</th><th>Reason</th></tr></thead><tbody>
+      <tr><td><code>peek()</code></td><td>O(1)</td><td>Read the root.</td></tr>
+      <tr><td><code>offer()</code></td><td>O(log n)</td><td>Append, then sift upward.</td></tr>
+      <tr><td><code>poll()</code></td><td>O(log n)</td><td>Move the last value to the root, then sift downward.</td></tr>
+      <tr><td><code>contains(value)</code></td><td>O(n)</td><td>The heap is not globally sorted for arbitrary search.</td></tr>
+    </tbody></table></div>
+    <Callout tone="warning" title="Iteration is not priority order">Only repeated removal guarantees priority order. The iterator exposes heap storage in an unspecified traversal order.</Callout>
+  </div>;
+}
+
+function ConcurrentCollectionsPage() {
+  return <div className="article-copy">
+    <h3>CopyOnWriteArrayList</h3>
+    <p>Every mutation creates and publishes a fresh backing array. Iterators keep a snapshot reference and never observe later writes.</p>
+    <CodeBlock code={copyOnWriteCode} />
+    <p>This is excellent for small, read-mostly collections such as listener lists. It is expensive for frequent writes or large arrays.</p>
+    <h3>Concurrent and blocking queues</h3>
+    <div className="table-wrap"><table><thead><tr><th>Queue</th><th>Internal idea</th><th>Use</th></tr></thead><tbody>
+      <tr><td><b>ConcurrentLinkedQueue</b></td><td>Non-blocking linked Nodes</td><td>Scalable concurrent FIFO without backpressure.</td></tr>
+      <tr><td><b>ArrayBlockingQueue</b></td><td>Fixed bounded array</td><td>Producer-consumer flow with explicit capacity.</td></tr>
+      <tr><td><b>LinkedBlockingQueue</b></td><td>Linked Nodes, optionally bounded</td><td>Blocking producer-consumer flow.</td></tr>
+      <tr><td><b>SynchronousQueue</b></td><td>No stored capacity; direct handoff</td><td>Each producer waits for a consumer.</td></tr>
+      <tr><td><b>PriorityBlockingQueue</b></td><td>Thread-safe priority heap</td><td>Blocking retrieval by priority; logically unbounded.</td></tr>
+    </tbody></table></div>
+    <CodeBlock code={blockingQueueCode} />
+    <Callout tone="tip" title="Backpressure is a design choice">A bounded blocking queue limits memory growth and can slow producers when consumers fall behind. An unbounded queue avoids blocking producers but can accumulate work.</Callout>
   </div>;
 }
 
@@ -368,17 +694,42 @@ function ListsDequePage() {
 
 function SetsPage() {
   return <div className="article-copy">
+    <p>Both classes implement <code>Set</code>, so both represent collections with no duplicates. They differ in how they decide sameness and what additional behavior they maintain.</p>
     <div className="table-wrap"><table><thead><tr><th>Property</th><th>HashSet</th><th>TreeSet</th></tr></thead><tbody>
       <tr><td>Matching</td><td><code>hashCode()</code>, then <code>equals()</code></td><td><code>compareTo()</code> or comparator</td></tr>
       <tr><td>Basic operations</td><td>O(1) average</td><td>O(log n)</td></tr>
       <tr><td>Order</td><td>Unspecified</td><td>Sorted</td></tr>
       <tr><td>Ranges/neighbors</td><td>No</td><td>Yes</td></tr>
-      <tr><td>Typical use</td><td>Fast membership</td><td>Continuously sorted set</td></tr>
+      <tr><td>Element requirement</td><td>Correct equality and useful hash</td><td>Mutually comparable or a comparator</td></tr>
+      <tr><td>Null</td><td>Allows one null</td><td>Natural ordering rejects null; a comparator may define support</td></tr>
+      <tr><td>Best use</td><td>Fast membership and deduplication</td><td>Sorted uniqueness, ranges, floor/ceiling</td></tr>
     </tbody></table></div>
     <CodeBlock code={setCode} />
-    <h3>The senior-level distinction</h3>
-    <p><code>TreeSet</code> considers two elements duplicates when their comparison returns zero. If that disagrees with <code>equals()</code>, the set can reject an object that equality considers different. The same issue applies to <code>TreeMap</code> keys.</p>
+    <h3>How TreeSet prevents duplicates internally</h3>
+    <p><code>TreeSet</code> is backed by a navigable tree map. The set element is stored as a map key with one shared placeholder value. During <code>add(element)</code>, the tree compares the new element while walking from the root.</p>
+    <TreeSetInsertDiagram />
+    <p>If comparison is less than or greater than zero, insertion continues to the left or right subtree. If comparison is zero, an equivalent tree key already exists: no second tree Node is created, the size does not change, and <code>add()</code> returns false.</p>
+    <Callout tone="warning" title="TreeSet uniqueness is ordering-based">A comparator returning zero means duplicate <em>inside that TreeSet</em>, even if <code>equals()</code> returns false. The comparator does not change equality elsewhere.</Callout>
     <Callout tone="tip" title="When sorting once is enough">If you mainly need fast membership and only occasionally need ordered output, a <code>HashSet</code> plus a sorted snapshot may be better than maintaining tree order after every update.</Callout>
+  </div>;
+}
+
+function ComparatorBehaviorPage() {
+  return <div className="article-copy">
+    <p>A comparator always produces an ordering result, but the collection decides what that result means.</p>
+    <div className="table-wrap"><table><thead><tr><th>Where comparator is used</th><th>Meaning of compare(a, b) == 0</th><th>Are duplicates removed?</th></tr></thead><tbody>
+      <tr><td><b>TreeSet</b></td><td>The same set position</td><td>Yes. The second element is rejected.</td></tr>
+      <tr><td><b>TreeMap</b></td><td>The same map key</td><td>No second key; putting replaces the value.</td></tr>
+      <tr><td><b>PriorityQueue</b></td><td>The same priority</td><td>No. Both elements may remain; tie removal order is arbitrary.</td></tr>
+      <tr><td><b>List.sort()</b></td><td>Equal position in the ordering</td><td>No. Both list elements remain.</td></tr>
+      <tr><td><b>HashSet / HashMap</b></td><td>No comparator is supplied to their public constructors</td><td>Duplicates are determined by hash and <code>equals()</code>.</td></tr>
+    </tbody></table></div>
+    <h3>TreeMap follows the same key rule</h3>
+    <div className="formula text-left"><code>compare(existingKey, newKey) == 0<br />→ same TreeMap key<br />→ keep the key position and replace its value</code></div>
+    <h3>PriorityQueue keeps ties</h3>
+    <p>A priority queue uses comparison to choose which element reaches the head. Two tasks with the same priority can both be stored. Comparison zero means tied priority, not set equality.</p>
+    <Callout title="A subtle HashMap detail">Current OpenJDK can use comparable ordering to arrange colliding keys inside a tree bin. That ordering helps navigation only; HashMap key uniqueness still follows its hash-and-equality rules.</Callout>
+    <Callout tone="tip" title="Interview answer">Comparator “wins over equals” only in sorted sets and sorted maps when they decide element or key identity. In sorting and priority queues, comparison controls order while duplicates remain.</Callout>
   </div>;
 }
 
@@ -437,14 +788,18 @@ function MockInterviewPage() {
     <div className="faq-list">
       <details><summary>What contracts must equals() and hashCode() follow?</summary><p>State all five equality rules, then say equal objects require equal hashes, collisions are allowed, and equality fields must remain stable while used in hash collections.</p></details>
       <details><summary>Would you use LinkedList for frequent insertion?</summary><p>Ask where insertion happens. Relinking is O(1) only once positioned; finding an arbitrary index is O(n). Prefer ArrayList for most lists and ArrayDeque for queues.</p></details>
+      <details><summary>How does ArrayList store values and grow?</summary><p>It stores element references in a resizable array and tracks size separately from capacity. Indexed access reads one slot. Most appends write one slot; when full, it allocates a larger array and copies references, making append O(1) amortized.</p></details>
+      <details><summary>Why can an indexed LinkedList loop be O(n²)?</summary><p>Every <code>get(i)</code> traverses Nodes from the nearer end. Repeating that traversal for all indices accumulates quadratic work; use an iterator or enhanced for-loop to traverse once.</p></details>
       <details><summary>When is TreeSet better than HashSet?</summary><p>When continuously sorted values, ranges, or neighbor queries justify O(log n). Mention that comparison result zero defines duplicates.</p></details>
+      <details><summary>Does a comparator remove duplicates in every collection?</summary><p>No. <code>TreeSet</code> rejects a second element and <code>TreeMap</code> replaces the value when comparison is zero. <code>PriorityQueue</code> and a sorted List keep both values; comparison controls their order only.</p></details>
+      <details><summary>Does iterating PriorityQueue return sorted order?</summary><p>No. Only repeated <code>poll()</code> follows priority order. Its iterator exposes heap storage in an unspecified traversal order.</p></details>
       <details><summary>Is containsKey() followed by put() safe on ConcurrentHashMap?</summary><p>The calls are safe separately, but the compound decision races. Use putIfAbsent, compute, computeIfAbsent, or merge.</p></details>
     </div>
     <h3>Senior differentiators</h3>
     <ul>
       <li>State the complete equality contracts rather than only saying “override both methods.”</li>
       <li>Include traversal cost when discussing linked-list insertion.</li>
-      <li>Mention comparator consistency for sorted sets and maps.</li>
+      <li>Explain how comparison zero has different meanings across collections.</li>
       <li>Distinguish thread-safe calls from atomic multi-step workflows.</li>
     </ul>
   </div>;
@@ -453,17 +808,22 @@ function MockInterviewPage() {
 function RecapPage() {
   return <div className="article-copy">
     <h3>Daily selection matrix</h3>
-    <div className="formula text-left"><code>Indexed sequence&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → ArrayList<br />Stack or queue&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → ArrayDeque<br />Unique membership&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → HashSet<br />Sorted unique values&nbsp;&nbsp;&nbsp;&nbsp; → TreeSet<br /><br />General key lookup&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → HashMap<br />Stable encounter order&nbsp;&nbsp; → LinkedHashMap<br />Sorted keys and ranges&nbsp;&nbsp; → TreeMap<br />Concurrent key access&nbsp;&nbsp;&nbsp;&nbsp; → ConcurrentHashMap</code></div>
+    <div className="formula text-left"><code>Indexed sequence&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → ArrayList<br />Stack or queue ends&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → ArrayDeque<br />Retrieve by priority&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → PriorityQueue<br />Unique membership&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → HashSet<br />Sorted unique values&nbsp;&nbsp;&nbsp;&nbsp; → TreeSet<br /><br />General key lookup&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → HashMap<br />Stable encounter order&nbsp;&nbsp; → LinkedHashMap<br />Sorted keys and ranges&nbsp;&nbsp; → TreeMap<br />Concurrent key access&nbsp;&nbsp;&nbsp;&nbsp; → ConcurrentHashMap<br />Bounded producer-consumer → ArrayBlockingQueue</code></div>
     <div className="answer-card"><p><strong>Memory hook:</strong> Correct equality makes collections trustworthy. Access pattern selects the collection. Ordering, sorting, and concurrency select the map.</p></div>
     <div className="sources">
       <p className="eyebrow">Primary references</p>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" target="_blank" rel="noreferrer">Object equality and hashCode <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/doc-files/coll-overview.html" target="_blank" rel="noreferrer">Collections Framework overview <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/ArrayList.html" target="_blank" rel="noreferrer">ArrayList API <ArrowRight /></a>
+      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/LinkedList.html" target="_blank" rel="noreferrer">LinkedList API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/ArrayDeque.html" target="_blank" rel="noreferrer">ArrayDeque API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/TreeSet.html" target="_blank" rel="noreferrer">TreeSet API <ArrowRight /></a>
+      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/PriorityQueue.html" target="_blank" rel="noreferrer">PriorityQueue API <ArrowRight /></a>
+      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/EnumSet.html" target="_blank" rel="noreferrer">EnumSet API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/LinkedHashMap.html" target="_blank" rel="noreferrer">LinkedHashMap API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/TreeMap.html" target="_blank" rel="noreferrer">TreeMap API <ArrowRight /></a>
+      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/CopyOnWriteArrayList.html" target="_blank" rel="noreferrer">CopyOnWriteArrayList API <ArrowRight /></a>
+      <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/BlockingQueue.html" target="_blank" rel="noreferrer">BlockingQueue API <ArrowRight /></a>
       <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html" target="_blank" rel="noreferrer">ConcurrentHashMap API <ArrowRight /></a>
     </div>
   </div>;
@@ -476,9 +836,19 @@ export const javaCollectionsPages: ReadingPage[] = [
   { id: 'equality-design', chapter: 'Equality', title: 'Designing equality safely', Content: EqualityDesignPage },
   { id: 'hash-contract', chapter: 'Equality', title: 'The complete hashCode() contract', Content: HashContractPage },
   { id: 'equality-exercises', chapter: 'Practice', title: 'Equality coding questions', Content: EqualityExercisesPage },
+  { id: 'framework', chapter: 'Framework', title: 'How the Collections Framework is organized', Content: FrameworkPage },
   { id: 'choosing-collections', chapter: 'Collection choice', title: 'How to choose a collection', Content: ChooseCollectionPage },
+  { id: 'arraylist-internals', chapter: 'List internals', title: 'How ArrayList stores values', Content: ArrayListInternalsPage },
+  { id: 'arraylist-growth', chapter: 'List internals', title: 'ArrayList growth and memory', Content: ArrayListDetailsPage },
+  { id: 'linkedlist-internals', chapter: 'List internals', title: 'How LinkedList stores values', Content: LinkedListInternalsPage },
+  { id: 'arraydeque-internals', chapter: 'Deque internals', title: 'How ArrayDeque stores values', Content: ArrayDequeInternalsPage },
+  { id: 'list-variants', chapter: 'List variants', title: 'List views, copies, and legacy types', Content: ListVariantsPage },
   { id: 'lists-and-deques', chapter: 'Collection choice', title: 'ArrayList, LinkedList, and ArrayDeque', Content: ListsDequePage },
+  { id: 'set-internals', chapter: 'Set internals', title: 'How Set implementations store values', Content: SetInternalsPage },
   { id: 'sets', chapter: 'Collection choice', title: 'HashSet and TreeSet', Content: SetsPage },
+  { id: 'comparator-behavior', chapter: 'Ordering', title: 'How Comparator behaves across collections', Content: ComparatorBehaviorPage },
+  { id: 'priority-queue', chapter: 'Queue internals', title: 'How PriorityQueue works internally', Content: PriorityQueuePage },
+  { id: 'concurrent-collections', chapter: 'Concurrency', title: 'Concurrent and blocking collections', Content: ConcurrentCollectionsPage },
   { id: 'map-comparison', chapter: 'Map choice', title: 'Comparing the main Map implementations', Content: MapComparisonPage },
   { id: 'ordered-maps', chapter: 'Map choice', title: 'Ordering, LRU behavior, and ranges', Content: OrderedMapsPage },
   { id: 'concurrent-maps', chapter: 'Concurrency', title: 'ConcurrentHashMap and atomic updates', Content: ConcurrentMapPage },
