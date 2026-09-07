@@ -1,6 +1,6 @@
 # Backend Field Notes
 
-A local React and TypeScript interview library. The first reviewed article explains how Java `HashMap` and `HashSet` work with readable examples and diagrams.
+A local React and TypeScript interview library with book-style chapters on Java collections, equality contracts, implementation tradeoffs, and backend interview topics.
 
 ## Published site
 

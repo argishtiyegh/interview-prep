@@ -64,7 +64,7 @@ export function BookReader({ pages }: { pages: ReadingPage[] }) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const target = event.target as HTMLElement;
-      if (target.closest('button, a, input, textarea, select, [contenteditable="true"]')) return;
+      if (target.closest('button, a, input, textarea, select, summary, [role="menuitem"], [contenteditable="true"]')) return;
       const wide = window.matchMedia('(min-width: 1280px)').matches;
       const start = wide ? spreadStart : current;
       const step = wide ? 2 : 1;
