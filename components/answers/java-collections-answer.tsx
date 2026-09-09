@@ -796,7 +796,7 @@ function SetsPage() {
     </tbody></table></div>
     <Callout title="Why this matters">These operations are useful for time windows, price bands, ranking thresholds, scheduling, and finding the closest available value. A HashSet cannot answer them directly because it does not maintain order.</Callout>
     <h3>How TreeSet prevents duplicates internally</h3>
-    <p><code>TreeSet</code> is backed by a navigable tree map. The set element is stored as a map key with one shared placeholder value. During <code>add(element)</code>, the tree compares the new element while walking from the root.</p>
+    <p><code>TreeSet</code> is backed by a navigable tree map. The set element is stored as a map key with one shared placeholder value. In current OpenJDK, those keys are organized as the same self-balancing red-black tree used by <code>TreeMap</code>. During <code>add(element)</code>, the tree compares the new element while walking from the root.</p>
     <TreeSetInsertDiagram />
     <p>If comparison is less than or greater than zero, insertion continues to the left or right subtree. If comparison is zero, an equivalent tree key already exists: no second tree Node is created, the size does not change, and <code>add()</code> returns false.</p>
     <Callout tone="warning" title="TreeSet uniqueness is ordering-based">A comparator returning zero means duplicate <em>inside that TreeSet</em>, even if <code>equals()</code> returns false. The comparator does not change equality elsewhere.</Callout>
@@ -820,6 +820,11 @@ function MapComparisonPage() {
       <tr><td><b>TreeMap</b></td><td>Natural ordering rejects null keys; null values allowed</td><td>No</td><td>Sorted traversal, ranges, and nearest keys</td></tr>
       <tr><td><b>ConcurrentHashMap</b></td><td>No null keys or values</td><td>Yes</td><td>Shared maps with concurrent reads and updates</td></tr>
     </tbody></table></div>
+    <h3>HashMap or LinkedHashMap?</h3>
+    <p>Use <code>HashMap</code> when the program only needs fast key lookup and iteration order has no meaning. It stores less ordering metadata, and callers must not depend on the order they happen to observe.</p>
+    <p>Use <code>LinkedHashMap</code> when iteration must be predictable. Common reasons include displaying records in the order received, producing deterministic reports or serialized output, preserving first-seen order while deduplicating by key, and implementing a small access-order policy such as least-recently-used eviction.</p>
+    <Callout title="The requirement that changes the choice">If a test, API response, report, or processing rule must visit <code>A → B → C</code> because the entries arrived in that order, order is part of the required behavior and <code>LinkedHashMap</code> is appropriate. If only <code>map.get(key)</code> matters, prefer <code>HashMap</code>.</Callout>
+    <p>The tradeoff is that each <code>LinkedHashMap</code> entry maintains extra <code>before</code> and <code>after</code> links. Basic lookup remains O(1) on average, but the order chain uses extra memory and must be updated when entries change.</p>
     <Callout tone="tip" title="Interview answer">Choose <code>HashMap</code> for ordinary lookup, <code>LinkedHashMap</code> when encounter order matters, <code>TreeMap</code> when key order enables queries, and <code>ConcurrentHashMap</code> when multiple threads share mutable mappings.</Callout>
   </div>;
 }
@@ -863,6 +868,14 @@ function LinkedHashMapInternalsPage() {
 function TreeMapInternalsPage() {
   return <div className="article-copy">
     <p><code>TreeMap</code> stores entries in a red-black tree. It compares the requested key with the current Node and moves left for a smaller result or right for a larger result.</p>
+    <h3>What “red-black tree” means</h3>
+    <p>A red-black tree is a self-balancing binary search tree. Every Node has a key, value, left child, right child, parent, and a red-or-black marker. The colors are bookkeeping used to prevent the tree from becoming a long one-sided chain.</p>
+    <ul>
+      <li>The root is black, and a red Node cannot have a red child.</li>
+      <li>Every path from a Node to an empty descendant contains the same number of black Nodes.</li>
+      <li>After insertion or removal, the tree uses recoloring and small pointer rearrangements called rotations to restore those rules.</li>
+    </ul>
+    <p>These rules do not make both sides perfectly equal. They keep the longest path within a bounded multiple of the shortest path, so the tree height remains O(log n) and searches avoid degrading into a full linear scan.</p>
     <TreeMapDiagram />
     <ul>
       <li><code>get(40)</code>: compare with 30, move right to 50, then left to 40.</li>
