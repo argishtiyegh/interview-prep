@@ -498,11 +498,12 @@ function EqualsContractPage() {
       <tr><td><b>Reflexive</b></td><td><code>x.equals(x)</code> is true.</td></tr>
       <tr><td><b>Symmetric</b></td><td><code>x.equals(y)</code> and <code>y.equals(x)</code> agree.</td></tr>
       <tr><td><b>Transitive</b></td><td>If x equals y and y equals z, x equals z.</td></tr>
-      <tr><td><b>Consistent</b></td><td>Repeated calls agree while equality state is unchanged.</td></tr>
+      <tr><td><b>Consistent</b></td><td>Repeatedly calling <code>x.equals(y)</code> must return the same result as long as the fields used for equality in <code>x</code> and <code>y</code> do not change.</td></tr>
       <tr><td><b>Non-null</b></td><td><code>x.equals(null)</code> is false.</td></tr>
     </tbody></table></div>
     <h3><code>==</code> versus <code>equals()</code></h3>
     <p>For references, <code>==</code> asks whether two references point to the same object. <code>equals()</code> asks whether they represent the same logical value. The default <code>Object.equals()</code> also uses identity until a class overrides it.</p>
+    <p>If a class does not override <code>equals()</code>, two separately created objects are unequal even when all their fields contain the same values; only two references to the exact same object are equal. <code>hashCode()</code> does not participate in this equality decision—hash-based collections use it first to choose a bucket and then call <code>equals()</code> to identify the matching object.</p>
     <Callout title="Why the rules matter">They make equality an equivalence relation. Collections can group values consistently instead of changing their answer with comparison direction or history.</Callout>
   </div>;
 }
