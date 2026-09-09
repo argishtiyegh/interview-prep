@@ -199,6 +199,13 @@ const lruCode = [
   '        return size() > maximumSize;',
   '    }',
   '}',
+  '',
+  'LruMap<Integer, String> cache = new LruMap<>(3);',
+  'cache.put(1, "Ana");',
+  'cache.put(2, "Ben");',
+  'cache.put(3, "Cara");       // order: 1, 2, 3',
+  'cache.get(1);               // order: 2, 3, 1 (1 was just used)',
+  'cache.put(4, "David");      // evicts 2; order: 3, 1, 4',
 ].join('\n');
 
 const rangeCode = [
@@ -774,15 +781,20 @@ function ListsDequePage() {
 function SetsPage() {
   return <div className="article-copy">
     <p>Both classes implement <code>Set</code>, so both represent collections with no duplicates. They differ in how they decide sameness and what additional behavior they maintain.</p>
-    <div className="table-wrap"><table><thead><tr><th>Property</th><th>HashSet</th><th>TreeSet</th></tr></thead><tbody>
-      <tr><td>Matching</td><td><code>hashCode()</code>, then <code>equals()</code></td><td><code>compareTo()</code> or comparator</td></tr>
-      <tr><td>Basic operations</td><td>O(1) average</td><td>O(log n)</td></tr>
-      <tr><td>Order</td><td>Unspecified</td><td>Sorted</td></tr>
-      <tr><td>Ranges/neighbors</td><td>No</td><td>Yes</td></tr>
-      <tr><td>Element requirement</td><td>Correct equality and useful hash</td><td>Mutually comparable or a comparator</td></tr>
-      <tr><td>Null</td><td>Allows one null</td><td>Natural ordering rejects null; a comparator may define support</td></tr>
-      <tr><td>Best use</td><td>Fast membership and deduplication</td><td>Sorted uniqueness, ranges, floor/ceiling</td></tr>
-    </tbody></table></div>
+    <Callout title="The main difference"><code>HashSet</code> optimizes ordinary membership without guaranteeing iteration order. <code>TreeSet</code> continuously keeps elements sorted and provides range and nearest-element queries. Maintaining that sorted tree is why its basic operations cost O(log n) instead of HashSet&apos;s O(1) average.</Callout>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <article className="rounded-xl border border-cyan-300 bg-cyan-50 p-5">
+        <h3 className="mt-0">When to use HashSet</h3>
+        <p>Choose it when the requirement is fast <code>add</code>, <code>contains</code>, or <code>remove</code>, and the order of iteration does not matter. Typical uses are duplicate removal, membership checks, and recording IDs that have already been processed.</p>
+        <p><b>How it provides that behavior:</b> it stores every element as a key in a backing <code>HashMap</code>, paired with one shared placeholder value. The element&apos;s <code>hashCode()</code> selects a bucket; <code>equals()</code> confirms whether an equal key already exists. This gives O(1) average operations with well-distributed hashes, but bucket placement does not provide a meaningful order.</p>
+      </article>
+      <article className="rounded-xl border border-amber-300 bg-amber-50 p-5">
+        <h3 className="mt-0">When to use TreeSet</h3>
+        <p>Choose it when values must remain sorted while the set changes, or when the program needs ranges and nearest values such as <code>floor</code> and <code>ceiling</code>. Typical uses include schedules, rankings, price bands, and ordered indexes.</p>
+        <p><b>How it provides that behavior:</b> it stores every element as a key in a backing <code>TreeMap</code>. That map uses a self-balancing red-black tree. <code>compareTo()</code> or a supplied <code>Comparator</code> directs the search left or right; comparison result zero means the element is already present. Tree balancing keeps basic operations O(log n).</p>
+      </article>
+    </div>
+    <p><strong>Choose from the required behavior:</strong> if you only need to ask “is this value present?”, start with <code>HashSet</code>. Pay the extra tree cost of <code>TreeSet</code> when sorted iteration, ranges, or neighbor lookup is part of the actual requirement.</p>
     <CodeBlock code={setCode} />
     <h3>What sorted uniqueness, ranges, and neighbors mean</h3>
     <p><strong>Sorted uniqueness</strong> means the set keeps at most one element for each comparison result of zero and continuously maintains the remaining elements in sorted order. With scores <code>[55, 72, 88, 91]</code>, iteration always follows that numeric order.</p>
@@ -808,18 +820,6 @@ function MapComparisonPage() {
   return <div className="article-copy">
     <p>All four implementations satisfy the <code>Map</code> abstraction, but they organize entries differently to provide different guarantees.</p>
     <MapModelsDiagram />
-    <div className="table-wrap"><table><thead><tr><th>Map</th><th>Internal organization</th><th>Order</th><th>Basic cost</th></tr></thead><tbody>
-      <tr><td><b>HashMap</b></td><td>Bucket array; collision Nodes can become tree bins</td><td>None guaranteed</td><td>O(1) average</td></tr>
-      <tr><td><b>LinkedHashMap</b></td><td>HashMap-style entries plus one doubly linked order chain</td><td>Insertion or access order</td><td>O(1) average</td></tr>
-      <tr><td><b>TreeMap</b></td><td>Balanced red-black tree of key-value entries</td><td>Sorted by keys</td><td>O(log n)</td></tr>
-      <tr><td><b>ConcurrentHashMap</b></td><td>Concurrent bucket array with list/tree bins and specialized control Nodes</td><td>None guaranteed</td><td>O(1) expected</td></tr>
-    </tbody></table></div>
-    <div className="table-wrap"><table><thead><tr><th>Map</th><th>Nulls</th><th>Thread safety</th><th>Best fit</th></tr></thead><tbody>
-      <tr><td><b>HashMap</b></td><td>One null key; null values</td><td>No</td><td>General single-threaded lookup</td></tr>
-      <tr><td><b>LinkedHashMap</b></td><td>One null key; null values</td><td>No</td><td>Predictable iteration or simple access-order policy</td></tr>
-      <tr><td><b>TreeMap</b></td><td>Natural ordering rejects null keys; null values allowed</td><td>No</td><td>Sorted traversal, ranges, and nearest keys</td></tr>
-      <tr><td><b>ConcurrentHashMap</b></td><td>No null keys or values</td><td>Yes</td><td>Shared maps with concurrent reads and updates</td></tr>
-    </tbody></table></div>
     <h3>HashMap or LinkedHashMap?</h3>
     <p>Use <code>HashMap</code> when the program only needs fast key lookup and iteration order has no meaning. It stores less ordering metadata, and callers must not depend on the order they happen to observe.</p>
     <p>Use <code>LinkedHashMap</code> when iteration must be predictable. Common reasons include displaying records in the order received, producing deterministic reports or serialized output, preserving first-seen order while deduplicating by key, and implementing a small access-order policy such as least-recently-used eviction.</p>
@@ -858,8 +858,10 @@ function LinkedHashMapInternalsPage() {
       <li><b>Iterate through order links.</b><span>Iteration starts at <code>head</code> and follows <code>after</code>, so resizing the bucket array does not destroy encounter order.</span></li>
       <li><b>Unlink twice on removal.</b><span>The entry leaves its hash bin and its neighbors&apos; order links are joined together.</span></li>
     </ol>
-    <Callout title="Insertion order versus access order">The default preserves insertion order. With <code>accessOrder=true</code>, successful accesses such as <code>get()</code> move that entry to the tail, producing least-recently-used to most-recently-used order.</Callout>
-    <h3>A small access-order map</h3>
+    <Callout title="Insertion order versus access order">The default preserves insertion order. That alone is not enough for LRU because reading an entry does not change its position. With <code>accessOrder=true</code>, successful accesses such as <code>get()</code> move that entry to the tail, producing least-recently-used to most-recently-used order.</Callout>
+    <h3>How access order creates a small LRU cache</h3>
+    <p>In access-order mode, the <code>head</code> is the entry used least recently and the <code>tail</code> is the entry used most recently. A successful access moves its entry to the tail. A new entry also joins at the tail. When the cache exceeds its limit, <code>removeEldestEntry()</code> removes the head.</p>
+    <p>This is why <code>LinkedHashMap</code> is useful for a simple LRU cache: its hash structure keeps lookup O(1) on average, while its linked order records recency without sorting entries or scanning the whole map.</p>
     <CodeBlock code={lruCode} />
     <Callout tone="warning" title="A demonstration, not a complete cache">This map is not thread-safe and has no expiration, loading, size-by-weight policy, or cache metrics.</Callout>
   </div>;
