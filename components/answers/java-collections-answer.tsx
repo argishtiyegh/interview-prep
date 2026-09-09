@@ -860,6 +860,7 @@ function LinkedHashMapInternalsPage() {
     </ol>
     <Callout title="Insertion order versus access order">The default preserves insertion order. That alone is not enough for LRU because reading an entry does not change its position. With <code>accessOrder=true</code>, successful accesses such as <code>get()</code> move that entry to the tail, producing least-recently-used to most-recently-used order.</Callout>
     <h3>How access order creates a small LRU cache</h3>
+    <p><b>LRU means Least Recently Used.</b> A cache has a limited capacity. When a new entry must be added to a full cache, an LRU policy removes the entry that has gone the longest without being accessed. “Least recently used” therefore means the oldest access, not necessarily the entry inserted first.</p>
     <p>In access-order mode, the <code>head</code> is the entry used least recently and the <code>tail</code> is the entry used most recently. A successful access moves its entry to the tail. A new entry also joins at the tail. When the cache exceeds its limit, <code>removeEldestEntry()</code> removes the head.</p>
     <p>This is why <code>LinkedHashMap</code> is useful for a simple LRU cache: its hash structure keeps lookup O(1) on average, while its linked order records recency without sorting entries or scanning the whole map.</p>
     <CodeBlock code={lruCode} />
