@@ -102,6 +102,15 @@ const comparatorCode = [
   'System.out.println(users.size());                // 1',
 ].join('\n');
 
+const defaultEqualsCode = [
+  'User first = new User(42, "Ana");',
+  'User second = new User(42, "Ana");',
+  'User sameObject = first;',
+  '',
+  'first.equals(second);     // false: separate objects',
+  'first.equals(sameObject); // true: both references point to first',
+].join('\n');
+
 const dequeCode = [
   'Deque<Job> queue = new ArrayDeque<>();',
   'queue.addLast(firstJob);',
@@ -503,7 +512,9 @@ function EqualsContractPage() {
     </tbody></table></div>
     <h3><code>==</code> versus <code>equals()</code></h3>
     <p>For references, <code>==</code> asks whether two references point to the same object. <code>equals()</code> asks whether they represent the same logical value. The default <code>Object.equals()</code> also uses identity until a class overrides it.</p>
-    <p>If a class does not override <code>equals()</code>, two separately created objects are unequal even when all their fields contain the same values; only two references to the exact same object are equal. <code>hashCode()</code> does not participate in this equality decision—hash-based collections use it first to choose a bucket and then call <code>equals()</code> to identify the matching object.</p>
+    <p><code>Object</code> cannot know which fields should define logical identity for every possible class, so its default <code>equals()</code> implementation compares object references, conceptually <code>return this == other</code>. A class must override the method to say that matching fields—such as the same user ID—make two separate objects logically equal.</p>
+    <CodeBlock label="Default identity equality" code={defaultEqualsCode} />
+    <p><code>hashCode()</code> does not participate in the equality decision. Hash-based collections use it first to choose a bucket and then call <code>equals()</code> to identify the matching object.</p>
     <Callout title="Why the rules matter">They make equality an equivalence relation. Collections can group values consistently instead of changing their answer with comparison direction or history.</Callout>
   </div>;
 }
