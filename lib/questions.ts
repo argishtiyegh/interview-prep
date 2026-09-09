@@ -16,6 +16,7 @@ export interface QuestionEntry {
   summary: string;
   updated: string;
   readingTime: string;
+  pageCount: number;
   pages: ReadingPage[];
 }
 
@@ -26,6 +27,7 @@ export const questions: QuestionEntry[] = [{
   summary: 'Buckets, collisions, equality, mutable-key failures, safe key design, and the HashMap inside every HashSet.',
   updated: 'September 2026',
   readingTime: '16 min read',
+  pageCount: 8,
   pages: hashMapPages,
 }, {
   title: 'Choosing Java Collections and Equality Contracts',
@@ -33,7 +35,8 @@ export const questions: QuestionEntry[] = [{
   category: 'Collections',
   summary: 'Equality contracts, collection selection, map tradeoffs, coding questions, and concurrent updates.',
   updated: 'September 2026',
-  readingTime: '40 min read',
+  readingTime: '39 min read',
+  pageCount: 23,
   pages: javaCollectionsPages,
 }];
 

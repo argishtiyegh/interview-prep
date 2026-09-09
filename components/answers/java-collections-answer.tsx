@@ -479,28 +479,6 @@ function LinkedHashSetDiagram() {
   </Figure>;
 }
 
-function RoadmapPage() {
-  return <div className="article-copy">
-    <p>These questions test whether you can connect an API choice to correctness, performance, and production behavior.</p>
-    <div className="pitfall-grid">
-      <article><span>CONTRACTS</span><h3>Can collections trust the object?</h3><p>Explain logical identity and stable equality.</p></article>
-      <article><span>ACCESS PATTERN</span><h3>Did you choose from requirements?</h3><p>Start with duplicates, order, access, and dominant operations.</p></article>
-      <article><span>TRADEOFFS</span><h3>Can you compare implementations?</h3><p>Discuss time, memory, ordering, ranges, and concurrency.</p></article>
-      <article><span>JUDGMENT</span><h3>Can you handle follow-ups?</h3><p>Recognize weak answers, races, and production consequences.</p></article>
-    </div>
-    <h3>Fast decision checklist</h3>
-    <ol className="step-list">
-      <li><b>Values or key-value mappings?</b></li>
-      <li><b>Are duplicates allowed?</b></li>
-      <li><b>Do you need indexed access or operations at the ends?</b></li>
-      <li><b>Must encounter order be predictable or sorted?</b></li>
-      <li><b>Do you need range or nearest-element queries?</b></li>
-      <li><b>Will multiple threads update it?</b></li>
-    </ol>
-    <Callout tone="tip" title="Interview habit">Name the required behavior before naming a class. This turns a memorized answer into an engineering decision.</Callout>
-  </div>;
-}
-
 function SpokenAnswersPage() {
   return <div className="article-copy">
     <h3>Equality contracts</h3>
@@ -974,7 +952,6 @@ function RecapPage() {
 }
 
 export const javaCollectionsPages: ReadingPage[] = [
-  { id: 'interview-roadmap', chapter: 'Interview roadmap', title: 'What interviewers are testing', Content: RoadmapPage },
   { id: 'spoken-answers', chapter: 'Interview roadmap', title: 'Three concise interview answers', Content: SpokenAnswersPage },
   { id: 'equals-contract', chapter: 'Equality', title: 'The complete equals() contract', Content: EqualsContractPage },
   { id: 'equality-design', chapter: 'Equality', title: 'Designing equality safely', Content: EqualityDesignPage },
