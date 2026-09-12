@@ -1,5 +1,6 @@
 import { hashMapPages } from '@/components/answers/hash-map-answer';
 import { javaCollectionsPages } from '@/components/answers/java-collections-answer';
+import { javaStreamsPages } from '@/components/answers/java-streams-answer';
 import type { ReadingPage } from '@/lib/reading';
 
 export const categories = [
@@ -38,6 +39,15 @@ export const questions: QuestionEntry[] = [{
   readingTime: '39 min read',
   pageCount: 23,
   pages: javaCollectionsPages,
+}, {
+  title: 'Java Streams and Collection Processing',
+  slug: 'java-streams-collection-processing',
+  category: 'Collections',
+  summary: 'Pipeline execution, laziness, transformations, reductions, collectors, correctness, and parallel-stream judgment.',
+  updated: 'September 2026',
+  readingTime: '34 min read',
+  pageCount: 16,
+  pages: javaStreamsPages,
 }];
 
 export const questionBySlug = (slug: string) => questions.find((q) => q.slug === slug);
