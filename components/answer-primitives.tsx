@@ -16,10 +16,11 @@ export function Callout({ tone = 'info', title, children }: { tone?: 'info'|'war
 export function CodeBlock({ code, label = 'Java' }: { code: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => { await navigator.clipboard.writeText(code); setCopied(true); window.setTimeout(() => setCopied(false), 1600); };
-  const highlighted = code.split(/(\b(?:new|var|class|record|public|private|final|int|return|if|else|null|true|false|extends|implements|static|void)\b|"[^"]*"|\/\/.*$)/gm);
+  const keywordPattern = /^(new|var|class|record|interface|abstract|sealed|permits|non-sealed|public|protected|private|final|int|long|double|boolean|return|if|else|switch|case|try|catch|throw|throws|null|true|false|extends|implements|static|default|void)$/;
+  const highlighted = code.split(/(\b(?:new|var|class|record|interface|abstract|sealed|permits|non-sealed|public|protected|private|final|int|long|double|boolean|return|if|else|switch|case|try|catch|throw|throws|null|true|false|extends|implements|static|default|void)\b|"[^"]*"|\/\/.*$)/gm);
   return <div className="code-shell not-prose">
     <div className="code-bar"><span>{label}</span><Button variant="ghost" size="sm" onClick={copy} aria-label="Copy code">{copied ? <Check /> : <Clipboard />}{copied ? 'Copied' : 'Copy'}</Button></div>
-    <pre><code>{highlighted.map((part, i) => <span key={i} className={part.startsWith('//') ? 'tok-comment' : part.startsWith('"') ? 'tok-string' : /^(new|var|class|record|public|private|final|int|return|if|else|null|true|false|extends|implements|static|void)$/.test(part) ? 'tok-keyword' : undefined}>{part}</span>)}</code></pre>
+    <pre><code>{highlighted.map((part, i) => <span key={i} className={part.startsWith('//') ? 'tok-comment' : part.startsWith('"') ? 'tok-string' : keywordPattern.test(part) ? 'tok-keyword' : undefined}>{part}</span>)}</code></pre>
   </div>;
 }
 

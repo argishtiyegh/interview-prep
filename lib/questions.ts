@@ -1,10 +1,11 @@
 import { hashMapPages } from '@/components/answers/hash-map-answer';
 import { javaCollectionsPages } from '@/components/answers/java-collections-answer';
+import { javaFundamentalsPages } from '@/components/answers/java-fundamentals-answer';
 import { javaStreamsPages } from '@/components/answers/java-streams-answer';
 import type { ReadingPage } from '@/lib/reading';
 
 export const categories = [
-  'Collections', 'Design Patterns', 'Databases', 'Threads & Concurrency',
+  'Collections', 'Java Fundamentals', 'Design Patterns', 'Databases', 'Threads & Concurrency',
   'System Design', 'JVM', 'Spring',
 ] as const;
 
@@ -48,6 +49,15 @@ export const questions: QuestionEntry[] = [{
   readingTime: '34 min read',
   pageCount: 16,
   pages: javaStreamsPages,
+}, {
+  title: 'Java Fundamentals, Strings, and Object Design',
+  slug: 'java-fundamentals-strings-object-design',
+  category: 'Java Fundamentals',
+  summary: 'Object design, dispatch, values and references, exceptions, immutability, strings, wrappers, Optional, and precise money handling.',
+  updated: 'September 2026',
+  readingTime: '46 min read',
+  pageCount: 22,
+  pages: javaFundamentalsPages,
 }];
 
 export const questionBySlug = (slug: string) => questions.find((q) => q.slug === slug);
