@@ -4,6 +4,7 @@ import { javaConcurrencyPages } from '@/components/answers/java-concurrency-answ
 import { javaExecutorsPages } from '@/components/answers/java-executors-answer';
 import { javaFundamentalsPages } from '@/components/answers/java-fundamentals-answer';
 import { javaGenericsPages } from '@/components/answers/java-generics-answer';
+import { jvmMemoryPerformancePages } from '@/components/answers/jvm-memory-performance-answer';
 import { javaStreamsPages } from '@/components/answers/java-streams-answer';
 import type { ReadingPage } from '@/lib/reading';
 
@@ -88,6 +89,15 @@ export const questions: QuestionEntry[] = [{
   readingTime: '48 min read',
   pageCount: 20,
   pages: javaExecutorsPages,
+}, {
+  title: 'JVM, Memory, and Performance',
+  slug: 'jvm-memory-performance',
+  category: 'JVM',
+  summary: 'Memory areas, allocation, garbage collection, leaks, JIT, containers, collectors, and production diagnostic tools.',
+  updated: 'September 2026',
+  readingTime: '62 min read',
+  pageCount: 28,
+  pages: jvmMemoryPerformancePages,
 }];
 
 export const questionBySlug = (slug: string) => questions.find((q) => q.slug === slug);
