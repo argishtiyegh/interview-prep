@@ -261,6 +261,15 @@ const stringEqualityCode = [
 ].join('\n');
 
 const buildersCode = [
+  '// Costly for incremental construction:',
+  'String joined = "";',
+  'for (String part : parts) {',
+  '    joined = joined + part;',
+  '    // A new String is produced and the previous joined characters',
+  '    // are copied again on every iteration.',
+  '}',
+  '',
+  '// Prefer one mutable buffer for a loop:',
   'StringBuilder builder = new StringBuilder();',
   'for (String part : parts) {',
   '    builder.append(part).append(", ");',
@@ -585,11 +594,13 @@ function StringEqualityPage() {
 
 function BuilderBufferPage() {
   return <div className="article-copy">
-    <div className="answer-card"><p><code>StringBuilder</code> and <code>StringBuffer</code> are mutable character sequences backed by expandable storage. <code>StringBuilder</code> provides no synchronization and is the normal choice for local construction. <code>StringBuffer</code> synchronizes its methods for access to one shared instance, which adds coordination cost.</p></div>
+    <div className="answer-card"><p><code>StringBuilder</code> and <code>StringBuffer</code> are mutable character sequences backed by expandable storage. <code>StringBuilder</code> provides no synchronization and is the normal choice for local construction. <code>StringBuffer</code> synchronizes its methods for access to one shared instance, which adds coordination cost. A short, fixed expression such as <code>first + &quot; &quot; + last</code> is readable and normally compiled efficiently, but repeated <code>result = result + part</code> inside a loop creates a new immutable <code>String</code> on every iteration.</p></div>
     <BuilderDiagram />
     <CodeBlock code={buildersCode} label="Accumulate, then materialize" />
+    <h3>Why <code>+</code> becomes costly inside a loop</h3>
+    <p>Each new <code>String</code> must contain both the entire result accumulated so far and the newly appended part. The characters from the previous intermediate result are therefore copied again during every iteration. As the result grows, later iterations copy increasingly large prefixes, so building a long value this way can approach quadratic copying work. <code>StringBuilder</code> keeps one reusable buffer, expands it only when required, and materializes the final immutable <code>String</code> once with <code>toString()</code>.</p>
     <h3>Nuances</h3>
-    <ul><li>The builder grows its internal capacity when needed; exact growth policy is an implementation detail.</li><li>The compiler may optimize simple <code>+</code> concatenation, so use readable <code>+</code> for a few parts.</li><li>Use a builder for loops or incremental construction.</li><li>A synchronized method does not make a multi-call workflow atomic; external coordination may still be required.</li></ul>
+    <ul><li>The builder grows its internal capacity when needed; exact growth policy is an implementation detail.</li><li>The compiler optimizes a single concatenation expression, so use readable <code>+</code> for a small, fixed number of parts.</li><li>Use <code>StringBuilder</code> for loops, conditional appends, or incremental construction where the result is repeatedly extended.</li><li>Use <code>StringBuffer</code> only when one mutable buffer truly must be shared and its synchronized API matches the required coordination.</li><li>A synchronized method does not make a multi-call workflow atomic; external coordination may still be required.</li></ul>
   </div>;
 }
 
