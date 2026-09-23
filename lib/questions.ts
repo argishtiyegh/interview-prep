@@ -5,6 +5,10 @@ import { javaExecutorsPages } from '@/components/answers/java-executors-answer';
 import { javaFundamentalsPages } from '@/components/answers/java-fundamentals-answer';
 import { javaGenericsPages } from '@/components/answers/java-generics-answer';
 import { jvmMemoryPerformancePages } from '@/components/answers/jvm-memory-performance-answer';
+import { restApiPages } from '@/components/answers/rest-api-answer';
+import { springBootPages } from '@/components/answers/spring-boot-answer';
+import { springJpaHibernatePages } from '@/components/answers/spring-jpa-hibernate-answer';
+import { sqlDatabasePerformancePages } from '@/components/answers/sql-database-performance-answer';
 import { javaStreamsPages } from '@/components/answers/java-streams-answer';
 import type { ReadingPage } from '@/lib/reading';
 
@@ -98,6 +102,42 @@ export const questions: QuestionEntry[] = [{
   readingTime: '62 min read',
   pageCount: 28,
   pages: jvmMemoryPerformancePages,
+}, {
+  title: 'Spring and Spring Boot',
+  slug: 'spring-and-spring-boot',
+  category: 'Spring',
+  summary: 'IoC, bean lifecycles, proxies, MVC request flow, configuration, operations, web-stack choices, and Boot 4 migration.',
+  updated: 'September 2026',
+  readingTime: '45 min read',
+  pageCount: 20,
+  pages: springBootPages,
+}, {
+  title: 'SQL, Transactions, and Database Performance',
+  slug: 'sql-transactions-database-performance',
+  category: 'Databases',
+  summary: 'ACID, isolation, MVCC, locking, indexes, execution plans, pooling, pagination, integrity, and scaling.',
+  updated: 'September 2026',
+  readingTime: '60 min read',
+  pageCount: 26,
+  pages: sqlDatabasePerformancePages,
+}, {
+  title: 'Spring Transactions, JPA, and Hibernate',
+  slug: 'spring-transactions-jpa-hibernate',
+  category: 'Spring',
+  summary: 'Transaction proxies, propagation, persistence contexts, fetching, mappings, batching, caches, and locking.',
+  updated: 'September 2026',
+  readingTime: '58 min read',
+  pageCount: 25,
+  pages: springJpaHibernatePages,
+}, {
+  title: 'REST APIs and Error Handling',
+  slug: 'rest-apis-error-handling',
+  category: 'System Design',
+  summary: 'HTTP semantics, validation, Problem Details, pagination, compatibility, deadlines, idempotency, and resilience.',
+  updated: 'September 2026',
+  readingTime: '40 min read',
+  pageCount: 17,
+  pages: restApiPages,
 }];
 
 export const questionBySlug = (slug: string) => questions.find((q) => q.slug === slug);
