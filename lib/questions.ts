@@ -175,8 +175,8 @@ export const questions: QuestionEntry[] = [{
   title: 'Production Troubleshooting and Observability',
   slug: 'production-troubleshooting-observability',
   category: 'Operations',
-  summary: 'Signals, percentiles, incident triage, pool saturation, JVM tools, mitigation, and reliability objectives.',
-  updated: 'September 2026', readingTime: '38 min read', pageCount: 11, pages: productionObservabilityPages,
+  summary: 'Concrete incident workflows, exact metrics and commands, tool interpretation, likely causes, mitigation, and SLO-based alerting.',
+  updated: 'September 2026', readingTime: '60 min read', pageCount: 20, pages: productionObservabilityPages,
 }, {
   title: 'Software Testing Strategy',
   slug: 'software-testing-strategy',
