@@ -107,18 +107,40 @@ const happensBeforeCode = [
 ].join('\n');
 
 const publicationCode = [
-  'final class Configuration {',
-  '    private final URI endpoint;',
-  '    Configuration(URI endpoint) { this.endpoint = endpoint; }',
-  '}',
+  'record Configuration(URI endpoint, Duration timeout) {}',
   '',
   'private volatile Configuration current;',
   '',
   'void reload() {',
-  '    current = new Configuration(loadEndpoint());',
+  '    Configuration built = new Configuration(',
+  '        loadEndpoint(), Duration.ofSeconds(2));',
+  '    current = built; // volatile write publishes the completed object',
   '}',
   '',
-  'Configuration snapshot() { return current; }',
+  '// Another thread',
+  'Configuration snapshot = current; // volatile read acquires publication',
+  'if (snapshot != null) {',
+  '    use(snapshot.endpoint(), snapshot.timeout());',
+  '}',
+].join('\n');
+
+const unsafePublicationCode = [
+  'final class Configuration {',
+  '    URI endpoint; // deliberately non-final for this example',
+  '    Configuration(URI endpoint) { this.endpoint = endpoint; }',
+  '}',
+  '',
+  'private Configuration current; // ordinary shared field',
+  '',
+  '// Thread A',
+  'Configuration c = new Configuration(endpoint);',
+  'current = c;',
+  '',
+  '// Thread B: no happens-before edge',
+  'Configuration seen = current;',
+  'if (seen != null) {',
+  '    use(seen.endpoint); // not guaranteed to observe initialization',
+  '}',
 ].join('\n');
 
 const confinementCode = [
@@ -235,6 +257,10 @@ function HappensBeforeFigure() {
   return <Figure caption="Happens-before is a guarantee of visibility and ordering, not wall-clock timing. Program order plus a synchronizes-with edge creates a transitive path from the data write to the later data read."><div className="grid gap-3 text-center font-sans text-sm sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center"><div className="rounded-xl border bg-white p-4">A: write data</div><ArrowRight className="mx-auto rotate-90 sm:rotate-0" /><div className="rounded-xl border border-cyan-300 bg-cyan-50 p-4">A: volatile write<br />→ B: volatile read</div><ArrowRight className="mx-auto rotate-90 sm:rotate-0" /><div className="rounded-xl border bg-white p-4">B: read data</div></div></Figure>;
 }
 
+function PublicationFigure() {
+  return <Figure caption="The volatile write publishes the fully constructed snapshot. A later volatile read of the same field acquires that publication, making the earlier constructor writes visible to the reader."><div className="grid gap-3 text-center font-sans text-sm sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center"><div className="rounded-xl border bg-white p-4"><b>Thread A</b><span className="block text-slate-600">construct Configuration</span></div><ArrowRight className="mx-auto rotate-90 sm:rotate-0" /><div className="rounded-xl border border-cyan-300 bg-cyan-50 p-4"><b>Publish</b><span className="block text-slate-600">volatile write to current</span></div><ArrowRight className="mx-auto rotate-90 sm:rotate-0" /><div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4"><b>Thread B</b><span className="block text-slate-600">volatile read, then fields</span></div></div></Figure>;
+}
+
 function MapRaceFigure() {
   return <Figure caption="Each call can be thread-safe while the two-call decision is not. Atomic map methods move the decision and update into one per-key operation."><div className="space-y-3 font-sans text-sm"><div className="grid grid-cols-2 gap-3 text-center"><div className="rounded-xl border border-cyan-300 bg-cyan-50 p-3">A: containsKey → false</div><div className="rounded-xl border border-amber-300 bg-amber-50 p-3">B: containsKey → false</div><div className="rounded-xl border border-cyan-300 bg-cyan-50 p-3">A: load + put</div><div className="rounded-xl border border-amber-300 bg-amber-50 p-3">B: load + put</div></div><div className="rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-center"><b>computeIfAbsent: one atomic per-key decision</b></div></div></Figure>;
 }
@@ -257,7 +283,7 @@ function AtomicsPage(){return <div className="article-copy"><div className="answ
 
 function HappensBeforePage(){return <div className="article-copy"><div className="answer-card"><p>Happens-before is the Java Memory Model relation that guarantees one action’s effects are visible to and ordered before another action. Important edges include monitor unlock-to-later-lock, volatile write-to-later-read, <code>Thread.start()</code>, successful <code>Thread.join()</code>, final-field construction rules, and concurrency-library handoffs.</p></div><HappensBeforeFigure/><CodeBlock code={happensBeforeCode} label="Transitive publication"/><p>If two conflicting accesses are not ordered by happens-before, the program has a data race. Real-time order alone is not enough to create the guarantee.</p></div>}
 
-function PublicationPage(){return <div className="article-copy"><div className="answer-card"><p>Safe publication ensures another thread cannot observe a reference without also observing the object’s initialized state. Publish through a static initializer, a volatile field, an atomic or concurrent collection, a properly locked field, or another API whose contract creates a happens-before edge. Do not let <code>this</code> escape during construction.</p></div><CodeBlock code={publicationCode} label="Publish an immutable snapshot"/><h3>Final fields help, but do not solve every escape</h3><p>When construction completes normally and the object is not leaked early, final fields receive special visibility guarantees. Mutable objects reachable through final references still require their own safe mutation strategy.</p><Callout tone="warning" title="A constructor return is not universal publication">Another thread needs a defined handoff. Assigning the new object to an ordinary shared field without synchronization can leave the read unordered.</Callout></div>}
+function PublicationPage(){return <div className="article-copy"><div className="answer-card"><p>Safe publication means that when another thread sees a newly shared object reference, it is also guaranteed to see the state that was written while that object was constructed. A <code>volatile</code> reference is one useful way to create this guarantee without locking every read.</p></div><Callout title="current is a volatile reference">The variable <code>current</code> holds a reference to a <code>Configuration</code> object. Declaring <code>current</code> volatile applies the volatile read/write rules to that reference variable; it does not make the referenced object itself volatile or automatically protect later changes inside it.</Callout><Callout title="Volatile creates ordering, not mutual exclusion">Here <code>volatile</code> does not give synchronized-style locking: Thread A and Thread B can still execute at the same time. It creates a cross-thread ordering rule. Every write Thread A performs before writing <code>current</code> becomes visible to Thread B after Thread B subsequently reads that same volatile field and observes the published reference.</Callout><h3>What can go wrong with an ordinary shared reference?</h3><p>Inside Thread A, source-level program order says: construct the object first, then assign its reference to <code>current</code>. But if <code>current</code> is an ordinary field, there is no happens-before relationship connecting Thread A’s constructor writes to Thread B’s reads. Thread B may see stale state; for an ordinary non-final field, the Java Memory Model does not guarantee that the initialized value is visible merely because the reference is non-null.</p><CodeBlock code={unsafePublicationCode} label="Unsafe publication: reference and object state are not safely handed off"/><Callout tone="warning" title="The surprising theoretical outcome">Without safe publication, Thread B could observe <code>current != null</code> while an ordinary field such as <code>endpoint</code> still appears to contain its default value, <code>null</code>. The issue is not the constructor’s source order; the issue is the missing cross-thread visibility guarantee.</Callout><h3>Use a volatile reference to publish the completed snapshot</h3><p>Think of <code>volatile current</code> as saying: “When you observe the reference I wrote here, you must also observe everything I completed before publishing it.” Thread A constructs and initializes the snapshot, then performs the volatile write. Thread B performs a volatile read of the same field before using the snapshot.</p><PublicationFigure/><CodeBlock code={publicationCode} label="Volatile publication of an immutable snapshot"/><h3>Why the guarantee works</h3><ol className="step-list"><li><b>Thread A initializes the object.</b><span>Constructor writes occur before the assignment to <code>current</code> in Thread A’s program order.</span></li><li><b>Thread A writes the volatile reference.</b><span>That volatile write releases all writes that came before it; it does not lock Thread B.</span></li><li><b>Thread B reads the same volatile field.</b><span>A subsequent read that observes the published reference acquires the state ordered before the volatile write.</span></li><li><b>Happens-before becomes transitive.</b><span>The constructor writes are therefore visible before Thread B reads the snapshot’s fields.</span></li></ol><h3>What volatile publication does not do</h3><p>It safely publishes the state that existed before the volatile assignment. It does not prevent concurrent execution and does not protect later mutations. If the published object is changed afterward, those later changes need their own synchronization. This is why replacing an immutable configuration snapshot is a particularly good use case.</p><Callout title="Final fields have an additional rule">A properly constructed object whose <code>final</code> fields do not escape during construction receives special final-field visibility guarantees. That is why the unsafe example deliberately uses a non-final field. Safe publication is still the clearer general handoff rule, especially for object graphs containing ordinary mutable state.</Callout><Callout tone="tip" title="Other safe publication mechanisms">Static initialization, locking both the write and read with the same monitor, atomic references, concurrent collections, thread start and task-queue handoff can also establish the required happens-before edge when used according to their contracts.</Callout></div>}
 
 function ConfinementPage(){return <div className="article-copy"><div className="answer-card"><p>Thread confinement keeps mutable state reachable by only one thread, removing the need for synchronization around that state. Local variables are naturally confined unless their references escape. Event-loop ownership, actor-style queues, and carefully managed ThreadLocal state are other forms.</p></div><CodeBlock code={confinementCode} label="Mutate locally, publish immutably"/><h3>Shared mutable state multiplies coordination</h3><p>Every alias that can mutate shared data must obey the same protocol. Reducing aliases, publishing immutable values, or sending messages through queues often produces simpler correctness than adding locks around a widely shared graph.</p><Callout title="ThreadLocal and pools">Pool threads are reused, so values can leak between requests unless they are cleared in a <code>finally</code> block. Virtual threads change the scaling cost but not the semantic cleanup requirement.</Callout></div>}
 
