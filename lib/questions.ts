@@ -19,11 +19,14 @@ import { messagingEventDrivenPages } from '@/components/answers/messaging-event-
 import { networkingSecurityPages } from '@/components/answers/networking-security-answer';
 import { productionObservabilityPages } from '@/components/answers/production-observability-answer';
 import { testingPages } from '@/components/answers/testing-answer';
+import { algorithmsComplexityPages } from '@/components/answers/algorithms-complexity-search-sort-answer';
+import { linearDataStructurePages } from '@/components/answers/linear-data-structures-patterns-answer';
+import { treesGraphsDpPages } from '@/components/answers/trees-graphs-dp-greedy-answer';
 import type { ReadingPage } from '@/lib/reading';
 
 export const categories = [
   'Collections', 'Java Fundamentals', 'Design Patterns', 'Databases', 'Threads & Concurrency',
-  'System Design', 'JVM', 'Spring', 'Operations', 'Testing', 'Security & Networking',
+  'System Design', 'Algorithms & Data Structures', 'JVM', 'Spring', 'Operations', 'Testing', 'Security & Networking',
 ] as const;
 
 export type Category = (typeof categories)[number];
@@ -201,6 +204,24 @@ export const questions: QuestionEntry[] = [{
   category: 'Design Patterns',
   summary: 'SOLID, architecture styles, domain modeling, Java patterns, coupling, decisions, debt, and safe refactoring.',
   updated: 'September 2026', readingTime: '37 min read', pageCount: 12, pages: architecturePatternsPages,
+}, {
+  title: 'Complexity, Searching, Sorting, and Interview Method',
+  slug: 'algorithms-complexity-searching-sorting',
+  category: 'Algorithms & Data Structures',
+  summary: 'Complexity reasoning, search variants, sorting tradeoffs, Java APIs, and a repeatable interview problem-solving method.',
+  updated: 'October 2026', readingTime: '48 min read', pageCount: 18, pages: algorithmsComplexityPages,
+}, {
+  title: 'Linear Data Structures and Problem-Solving Patterns',
+  slug: 'linear-data-structures-problem-solving',
+  category: 'Algorithms & Data Structures',
+  summary: 'Arrays, strings, linked lists, stacks, queues, hashing, heaps, and the patterns that connect them to interview problems.',
+  updated: 'October 2026', readingTime: '52 min read', pageCount: 19, pages: linearDataStructurePages,
+}, {
+  title: 'Trees, Graphs, Dynamic Programming, and Greedy Algorithms',
+  slug: 'trees-graphs-dynamic-programming',
+  category: 'Algorithms & Data Structures',
+  summary: 'Tree and graph traversal, shortest paths, recursion, backtracking, dynamic programming, greedy reasoning, and strategy selection.',
+  updated: 'October 2026', readingTime: '66 min read', pageCount: 25, pages: treesGraphsDpPages,
 }];
 
 export const questionBySlug = (slug: string) => questions.find((q) => q.slug === slug);
